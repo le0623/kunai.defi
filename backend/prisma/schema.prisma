@@ -1,0 +1,351 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  monitoredWallets MonitoredWallet[]
+  tradingBots      TradingBot[]
+  copyTrades       CopyTrade[]
+  alerts           Alert[]
+
+  @@map("users")
+}
+
+model MonitoredWallet {
+  id        String   @id @default(cuid())
+  address   String
+  label     String?
+  isSmart   Boolean  @default(false)
+  riskScore Int      @default(0) // 0-100, higher = more risky
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  portfolio    Portfolio[]
+  alerts       Alert[]
+
+  @@unique([userId, address])
+  @@map("monitored_wallets")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  hash        String   @unique @db.VarChar(66)
+  blockNumber BigInt
+  timestamp   DateTime
+  from        String
+  to          String
+  value       String // ETH amount in wei
+  gasPrice    String
+  gasUsed     String
+  method      String? // Contract method called
+  status      String   @default("pending") // pending, confirmed, failed
+
+  // Token transfer details
+  tokenAddress  String?
+  tokenSymbol   String?
+  tokenAmount   String?
+  tokenDecimals Int?
+
+  // Relations
+  monitoredWalletId String?
+  monitoredWallet   MonitoredWallet? @relation(fields: [monitoredWalletId], references: [id])
+
+  @@map("transactions")
+}
+
+model ContractAnalysis {
+  id              String  @id @default(cuid())
+  contractAddress String  @unique
+  name            String?
+  symbol          String?
+  decimals        Int?
+  totalSupply     String?
+
+  // Security flags
+  isHoneypot Boolean @default(false)
+  isRugPull  Boolean @default(false)
+  hasProxy   Boolean @default(false)
+  isVerified Boolean @default(false)
+
+  // Risk assessment
+  riskScore   Int      @default(0) // 0-100
+  riskFactors String[] // Array of risk factors
+
+  // Analysis metadata
+  lastAnalyzed   DateTime @default(now())
+  analysisSource String? // Which service analyzed it
+
+  @@map("contract_analysis")
+}
+
+model Portfolio {
+  id            String  @id @default(cuid())
+  walletAddress String
+  tokenAddress  String
+  tokenSymbol   String?
+  tokenName     String?
+  balance       String // Token balance
+  valueUSD      String? // USD value
+  priceUSD      String? // Token price in USD
+
+  // Relations
+  monitoredWalletId String
+  monitoredWallet   MonitoredWallet @relation(fields: [monitoredWalletId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @default(now())
+
+  @@unique([monitoredWalletId, tokenAddress])
+  @@map("portfolios")
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  type      String // buy, sell, rug_pull, honeypot, large_transfer
+  severity  String   @default("medium") // low, medium, high, critical
+  message   String
+  metadata  Json? // Additional alert data
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId            String
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monitoredWalletId String?
+  monitoredWallet   MonitoredWallet? @relation(fields: [monitoredWalletId], references: [id])
+
+  @@map("alerts")
+}
+
+model TradingBot {
+  id        String    @id @default(cuid())
+  name      String
+  isActive  Boolean   @default(false)
+  config    Json // Bot configuration
+  status    String    @default("stopped") // running, stopped, error
+  lastRun   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trading_bots")
+}
+
+model CopyTrade {
+  id            String   @id @default(cuid())
+  targetAddress String
+  allocation    Float // Percentage to copy (0-100)
+  maxSlippage   Float    @default(2.0) // Maximum slippage percentage
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("copy_trades")
+}
+
+model SmartWalletLabel {
+  id         String   @id @default(cuid())
+  address    String   @unique
+  label      String
+  category   String // whale, influencer, bot, exchange, etc.
+  confidence Float    @default(0.0) // 0-1 confidence score
+  source     String? // Where this label came from
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("smart_wallet_labels")
+}
+
+model TelegramUser {
+  id            String      @id @unique
+  username      String?
+  firstName     String?
+  lastName      String?
+  walletAddress String? // User's wallet address for proxy wallet
+  isMonitoring  Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  lastActive    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  sniperConfigs SniperConfig[]
+  trades        TelegramTrade[]
+  alerts        TelegramAlert[]
+  proxyWallet   ProxyWallet?
+
+  @@map("telegram_users")
+}
+
+model SniperConfig {
+  id       String  @id @default(cuid())
+  name     String  @default("Default")
+  isActive Boolean @default(false)
+
+  // Basic settings
+  maxSlippage Float @default(5.0) // Percentage
+  gasLimit    Int   @default(500000)
+  gasPrice    Int   @default(20) // Gwei
+
+  // Trading limits
+  maxBuyAmount   Float   @default(0.1) // ETH
+  autoSell       Boolean @default(true)
+  sellPercentage Float   @default(50.0) // Percentage
+
+  // Target filters
+  targetChains String[] @default(["eth", "bsc"])
+  targetDexs   String[] @default(["uniswapv2", "pancakeswap"])
+
+  // Pool filters
+  minLiquidity  Float   @default(10000) // USD
+  maxBuyTax     Float   @default(10.0) // Percentage
+  maxSellTax    Float   @default(10.0) // Percentage
+  minMarketCap  Float   @default(100000) // USD
+  maxMarketCap  Float   @default(10000000) // USD
+  honeypotCheck Boolean @default(true)
+  lockCheck     Boolean @default(true)
+
+  // Advanced settings
+  blacklistTokens String[] @default([])
+  whitelistTokens String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  telegramUserId String
+  telegramUser   TelegramUser    @relation(fields: [telegramUserId], references: [id], onDelete: Cascade)
+  trades         TelegramTrade[]
+
+  @@map("sniper_configs")
+}
+
+model TelegramTrade {
+  id           String  @id @default(cuid())
+  type         String // buy, sell
+  status       String  @default("pending") // pending, success, failed, cancelled
+  tokenAddress String
+  tokenSymbol  String?
+  tokenName    String?
+  amount       Float // ETH amount
+  tokenAmount  String? // Token amount received
+  priceUSD     Float? // Price at time of trade
+  gasUsed      String? // Gas used in wei
+  gasPrice     String? // Gas price in wei
+  txHash       String? @db.VarChar(66)
+  slippage     Float? // Actual slippage
+  profit       Float? // Profit/loss in USD
+  error        String? // Error message if failed
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  telegramUserId String
+  telegramUser   TelegramUser  @relation(fields: [telegramUserId], references: [id], onDelete: Cascade)
+  sniperConfigId String?
+  sniperConfig   SniperConfig? @relation(fields: [sniperConfigId], references: [id])
+
+  @@map("telegram_trades")
+}
+
+model TelegramAlert {
+  id       String  @id @default(cuid())
+  type     String // pool_alert, price_alert, trade_alert, error_alert
+  title    String
+  message  String
+  metadata Json? // Additional alert data
+  isRead   Boolean @default(false)
+  priority String  @default("medium") // low, medium, high, critical
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  telegramUserId String
+  telegramUser   TelegramUser @relation(fields: [telegramUserId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_alerts")
+}
+
+model ProxyWallet {
+  id              String   @id @default(cuid())
+  userAddress     String
+  proxyAddress    String   @unique
+  telegramUserId  String   @unique // Link to Telegram user
+  maxTradeAmount  String // Maximum trade amount in ETH
+  maxSlippage     Int // Maximum slippage in basis points
+  dailyTradeLimit String // Daily trade limit in ETH
+  isActive        Boolean  @default(true)
+  deployedAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  approvals    ProxyApproval[]
+  trades       ProxyTrade[]
+  telegramUser TelegramUser?   @relation(fields: [telegramUserId], references: [id])
+
+  @@map("proxy_wallets")
+}
+
+model ProxyApproval {
+  id           String   @id @default(cuid())
+  userAddress  String
+  proxyAddress String
+  tokenAddress String
+  amount       String // Approved amount
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  proxyWallet ProxyWallet @relation(fields: [proxyAddress], references: [proxyAddress], onDelete: Cascade)
+
+  @@unique([userAddress, tokenAddress])
+  @@map("proxy_approvals")
+}
+
+model ProxyTrade {
+  id           String    @id @default(cuid())
+  userAddress  String
+  proxyAddress String
+  tradeId      String    @unique // Unique trade identifier
+  tokenIn      String
+  tokenOut     String
+  amountIn     String // Input amount
+  minAmountOut String // Minimum output amount
+  deadline     DateTime
+  dexData      String // DEX interaction data
+  status       String    @default("pending") // pending, executed, failed, cancelled
+  txHash       String?   @db.VarChar(66)
+  executedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  proxyWallet ProxyWallet @relation(fields: [proxyAddress], references: [proxyAddress], onDelete: Cascade)
+
+  @@map("proxy_trades")
+}
