@@ -1,40 +1,22 @@
-FROM node:18-alpine
-
-# Install dependencies for SSL certificates
-RUN apk add --no-cache openssl
+FROM node:22.17.0-alpine
 
 # Create app directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+WORKDIR /kunai-backend
 
 # Copy source code
-COPY dist ./dist
+COPY . .
 
-# Create SSL directory
-RUN mkdir -p /app/ssl
+# Install pnpm globally
+RUN npm install -g pnpm
 
-# Copy SSL certificates (if they exist)
-COPY ssl/*.pem /app/ssl/ 2>/dev/null || true
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Install dependencies
+RUN pnpm install
 
 # Expose ports
-EXPOSE 3001 443
+EXPOSE ${PORT} 8545
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+# Start script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Start the application
-CMD ["node", "dist/index.js"] 
+ENTRYPOINT ["docker-entrypoint.sh"]

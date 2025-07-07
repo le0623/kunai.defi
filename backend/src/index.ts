@@ -153,7 +153,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-const PORT = process.env['PORT'] || 3001;
+const PORT = parseInt(process.env['PORT'] || '5000');
 
 const startServer = async () => {
   try {
@@ -161,10 +161,10 @@ const startServer = async () => {
     await connectDatabase();
 
     // Start server
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       const protocol = server instanceof HttpsServer ? 'https' : 'http';
       logger.info(`🚀 Server running on port ${PORT} (${protocol.toUpperCase()})`);
-      logger.info(`📊 Health check: ${protocol}://localhost:${PORT}/health`);
+      logger.info(`📊 Health check: ${protocol}://0.0.0.0:${PORT}/health`);
       logger.info(`🔌 Real-time monitoring: Active`);
     });
 

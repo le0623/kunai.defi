@@ -22,14 +22,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx src/scripts/seed.ts",
-    "node": "hardhat node --hostname 0.0.0.0",
-    "contract:deploy:ethereum": "hardhat ignition deploy ./ignition/modules/ProxyWallet.ts --network ethereum",
-    "contract:deploy:sepolia": "hardhat ignition deploy ./ignition/modules/ProxyWallet.ts --network sepolia",
-    "contract:deploy:hardhat": "hardhat ignition deploy ./ignition/modules/ProxyWallet.ts --network hardhat",
-    "contract:deploy:localhost": "hardhat ignition deploy ./ignition/modules/ProxyWallet.ts --network localhost",
-    "contract:verify:ethereum": "hardhat verify --network ethereum",
-    "contract:verify:sepolia": "hardhat verify --network sepolia",
-    "contract:compile": "hardhat compile"
+    "postinstall": "prisma generate"
   },
   "keywords": [
     "trading",
@@ -40,7 +33,6 @@
   "author": "Kunai Team",
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "^5.3.0",
     "@prisma/client": "^6.10.1",
     "@prisma/extension-accelerate": "^2.0.1",
     "@telegram-apps/init-data-node": "^2.0.10",
@@ -68,8 +60,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
-    "@nomicfoundation/hardhat-ignition": "^0.15.12",
-    "@nomicfoundation/hardhat-toolbox-viem": "^4.0.0",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
@@ -84,7 +74,6 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.0",
     "globals": "^16.2.0",
-    "hardhat": "^2.25.0",
     "husky": "^9.1.7",
     "jest": "^30.0.2",
     "lint-staged": "^16.1.2",
