@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PoolService } from '@/services/poolService';
 import { logger } from '@/utils/logger';
+import axios from 'axios';
 
 export class PoolController {
   /**
@@ -108,14 +109,12 @@ export class PoolController {
         limit: parseInt(limit as string)
       };
 
-      const result = await PoolService.getPoolsByType('new', params);
+      const response = await axios.get('https://gmgn.ai/defi/quotation/v1/pairs/eth/new_pairs/1m?limit=100&orderby=open_timestamp&direction=desc&period=1m');
+      // const result = await PoolService.getPoolsByType('new', params);
       
-      res.json({
-        success: true,
-        data: result
-      });
+      res.json(response.data);
     } catch (error) {
-      logger.error('Error in getNewPools:', error);
+      // logger.error('Error in getNewPools:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to fetch new pools'

@@ -1,5 +1,5 @@
 @import "tailwindcss";
-/* @import "tw-animate-css";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -68,27 +68,7 @@ body {
 }
 
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  font-size: 1.75rem;
 }
 
 @media (prefers-color-scheme: light) {
@@ -98,9 +78,6 @@ button:focus-visible {
   }
   a:hover {
     color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
   }
 }
 
@@ -143,15 +120,16 @@ button:focus-visible {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: #0F172A;
+  /* --background: #000000; */
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  --primary: #2a60de;
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: #687dba;
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
@@ -183,4 +161,4 @@ button:focus-visible {
   body {
     @apply bg-background text-foreground;
   }
-} */
+}

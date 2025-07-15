@@ -9,7 +9,11 @@ import TradingBot from '@/pages/TradingBot'
 import CopyTrading from '@/pages/CopyTrading'
 import Terminal from '@/pages/Terminal'
 import TelegramWebApp from '@/pages/TelegramWebApp'
-import ProxyWalletCreate from './components/telegram/ProxyWalletCreate'
+import NewPair from '@/pages/NewPair'
+import ProxyWalletCreate from '@/components/telegram/ProxyWalletCreate'
+import { ThemeProvider } from '@/components/theme-provider'
+import { AuthProvider } from '@/contexts/auth-context'
+import AuthDialog from '@/components/common/auth-dialog'
 
 const queryClient = new QueryClient()
 
@@ -17,29 +21,35 @@ function App() {
   return (
     <Web3Provider>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            <Route path="/webapp/*" element={
-              <WebAppLayout>
-                <Routes>
-                  <Route path="/" element={<TelegramWebApp />} />
-                  <Route path="/deploy-wallet" element={<ProxyWalletCreate />} />
-                </Routes>
-              </WebAppLayout>
-            } />
-            <Route path="/*" element={
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/wallet-monitor" element={<WalletMonitor />} />
-                  <Route path="/trading-bot" element={<TradingBot />} />
-                  <Route path="/copy-trading" element={<CopyTrading />} />
-                  <Route path="/terminal" element={<Terminal />} />
-                </Routes>
-              </Layout>
-            } />
-          </Routes>
-        </Router>
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <AuthProvider>
+            <Router>
+              <Routes>
+                <Route path="/webapp/*" element={
+                  <WebAppLayout>
+                    <Routes>
+                      <Route path="/" element={<TelegramWebApp />} />
+                      <Route path="/deploy-wallet" element={<ProxyWalletCreate />} />
+                    </Routes>
+                  </WebAppLayout>
+                } />
+                <Route path="/*" element={
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/new-pair" element={<NewPair />} />
+                      <Route path="/wallet-monitor" element={<WalletMonitor />} />
+                      <Route path="/trading-bot" element={<TradingBot />} />
+                      <Route path="/copy-trading" element={<CopyTrading />} />
+                      <Route path="/terminal" element={<Terminal />} />
+                    </Routes>
+                  </Layout>
+                } />
+              </Routes>
+            </Router>
+            <AuthDialog />
+          </AuthProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </Web3Provider>
   )

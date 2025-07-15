@@ -36,6 +36,6 @@ export const config = createConfig({
   connectors,
   chains: [mainnet],
   transports: {
-    [mainnet.id]: http(import.meta.env.VITE_ETHEREUM_RPC_URL ?? "https://eth-mainnet.g.alchemy.com/v2/demo"),
+    [mainnet.id]: http(import.meta.env.VITE_ETHEREUM_RPC_URL ?? "https://1rpc.io/eth"),
   },
 });

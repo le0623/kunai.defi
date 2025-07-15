@@ -1,7 +1,7 @@
 FROM node:22.17.0-alpine
 
 # Create app directory
-WORKDIR /kunai-backend
+WORKDIR /kunai-contract
 
 # Copy source code
 COPY . .
@@ -13,7 +13,7 @@ RUN npm install -g pnpm
 RUN pnpm install
 
 # Expose ports
-EXPOSE 5000
+EXPOSE 8545
 
 # Start script
 COPY docker-entrypoint.sh /usr/local/bin/

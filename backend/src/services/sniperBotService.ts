@@ -28,9 +28,9 @@ export class SniperBotService {
       SmartContractService.initialize();  
       logger.info('✅ Smart contract service initialized');
 
-      // Start monitoring
-      await this.startMonitoring();
-      logger.info('✅ Pool monitoring started');
+      // // Start monitoring
+      // await this.startMonitoring();
+      // logger.info('✅ Pool monitoring started');
 
       // Setup cron jobs
       this.setupCronJobs();

@@ -15,12 +15,18 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      allowedHosts: ['cae8-2a01-4f9-2a-2e19-00-2.ngrok-free.app'],
+      host: '0.0.0.0',
+      port: 5173,
+      allowedHosts: ['kunai.trade', 'www.kunai.trade', 'api.kunai.trade'],
+      hmr: {
+        port: 5173,
+        host: 'kunai-frontend'
+      },
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:3001', // your Express backend
+          target: env.VITE_API_URL || 'https://api.kunai.trade',
           changeOrigin: true,
-          secure: false,
+          secure: true,
         }
       }
     },

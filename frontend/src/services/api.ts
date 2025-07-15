@@ -1,4 +1,5 @@
 import api from '@/lib/axios'
+import { storageService } from '@/services/localstorage'
 
 // Authentication API calls
 export const authAPI = {
@@ -15,7 +16,7 @@ export const authAPI = {
       signature,
     })
     if (response.data.success) {
-      localStorage.setItem('authToken', response.data.token)
+      storageService.setItem('authToken', response.data.token)
       return true
     }
     return false
@@ -34,7 +35,7 @@ export const authAPI = {
   // Logout user
   logout: async (): Promise<void> => {
     await api.post('/api/auth/logout')
-    localStorage.removeItem('authToken')
+    storageService.removeItem('authToken')
   },
 }
 

@@ -1,19 +1,19 @@
+# Build stage
 FROM node:22.17.0-alpine
 
-# Create app directory
-WORKDIR /kunai-backend
+WORKDIR /kunai-frontend
 
 # Copy source code
 COPY . .
 
-# Install pnpm globally
+# Install pnpm
 RUN npm install -g pnpm
 
 # Install dependencies
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
-# Expose ports
-EXPOSE 5000
+# Expose port 5173
+EXPOSE 5173
 
 # Start script
 COPY docker-entrypoint.sh /usr/local/bin/

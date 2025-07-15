@@ -1,0 +1,147 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17-alpine
+    container_name: kunai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/prisma:/docker-entrypoint-initdb.d
+    networks:
+      - kunai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching
+  redis:
+    image: redis:8-alpine
+    container_name: kunai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - kunai-network
+    command: redis-server --appendonly yes
+
+  # Hardhat node
+  kunai-contract:
+    build:
+      context: ./contract
+      dockerfile: Dockerfile
+    container_name: kunai-contract
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+    networks:
+      - kunai-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://kunai-contract:8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Backend API
+  kunai-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kunai-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./backend:/kunai-backend
+      - /kunai-backend/node_modules
+      - ./backend/logs:/kunai-backend/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kunai-contract:
+        condition: service_healthy
+    networks:
+      - kunai-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://kunai-backend:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3  
+      start_period: 30s
+
+  # Frontend
+  kunai-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: kunai-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./frontend/.env
+    volumes:
+      - ./frontend:/kunai-frontend
+      - /kunai-frontend/node_modules
+    depends_on:
+      kunai-backend:
+        condition: service_healthy
+    networks:
+      - kunai-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://kunai-frontend:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:latest
+    container_name: kunai-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./.nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./.ssl:/etc/nginx/ssl:ro
+    depends_on:
+      # kunai-frontend:
+      #   condition: service_healthy
+      kunai-backend:
+        condition: service_healthy
+    networks:
+      - kunai-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://kunai-nginx:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  kunai-network:
+    driver: bridge

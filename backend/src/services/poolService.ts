@@ -3,67 +3,66 @@ import { logger } from '@/utils/logger';
 import axios from 'axios';
 import { createPublicClient, http, getAddress } from 'viem';
 import { mainnet } from 'viem/chains';
-import { UNISWAP_V2_FACTORY, UNISWAP_V2_FACTORY_ABI, WETH_ADDRESS } from '@/config/abi';
+import { UNISWAP_V3_FACTORY, UNISWAP_V3_FACTORY_ABI, WETH_ADDRESS } from '@/config/abi';
 import { prisma } from '@/config/database';
 import { TelegramBotService } from './telegramBotService';
 
 export class PoolService {
   private static readonly COINGECKO_API = 'https://api.coingecko.com/api/v3';
   private static readonly DEXSCREENER_API = 'https://api.dexscreener.com/latest';
-  private static readonly UNISWAP_API = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2';
+  private static readonly UNISWAP_API = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3';
   
   private static client = createPublicClient({
     chain: mainnet,
-    transport: http(process.env['ETHEREUM_RPC_URL'] || 'https://eth-mainnet.g.alchemy.com/v2/demo')
+    transport: http(process.env['ETHEREUM_RPC_URL'] || 'https://eth-mainnet.g.alchemy.com/v2/OyzmIlBMGFisDMu_VICKIBFzNtoLBgJk')
   });
 
   private static isListening = false;
   private static unsubscribe: (() => void) | null = null;
 
   /**
-   * Start listening to Uniswap V2 factory events
+   * Start listening to Uniswap V3 factory events
    */
   static async startListeningToNewPools(): Promise<void> {
     if (this.isListening) {
-      logger.warn('Already listening to Uniswap V2 factory events');
+      logger.warn('Already listening to Uniswap V3 factory events');
       return;
     }
 
     try {
-      logger.info('🎧 Starting to listen to Uniswap V2 factory events...');
+      logger.info('🎧 Starting to listen to Uniswap V3 factory events...');
 
       this.unsubscribe = this.client.watchContractEvent({
-        address: UNISWAP_V2_FACTORY as `0x${string}`,
-        abi: UNISWAP_V2_FACTORY_ABI,
-        eventName: 'PairCreated',
+        address: UNISWAP_V3_FACTORY as `0x${string}`,
+        abi: UNISWAP_V3_FACTORY_ABI,
+        eventName: 'PoolCreated',
         onLogs: async (logs) => {
           for (const log of logs) {
             const args = (log as any).args;
-            console.log("args", args);
             if (args) {
               await this.handleNewPool(args);
             }
           }
         },
         onError: (error) => {
-          logger.error('Error listening to Uniswap V2 factory events:', error);
+          logger.error('Error listening to Uniswap V3 factory events:', error);
         }
       });
 
       this.isListening = true;
-      logger.info('✅ Successfully started listening to Uniswap V2 factory events');
+      logger.info('✅ Successfully started listening to Uniswap V3 factory events');
     } catch (error) {
-      logger.error('❌ Failed to start listening to Uniswap V2 factory events:', error);
+      logger.error('❌ Failed to start listening to Uniswap V3 factory events:', error);
       throw error;
     }
   }
 
   /**
-   * Stop listening to Uniswap V2 factory events
+   * Stop listening to Uniswap V3 factory events
    */
   static async stopListeningToNewPools(): Promise<void> {
     if (!this.isListening || !this.unsubscribe) {
-      logger.warn('Not currently listening to Uniswap V2 factory events');
+      logger.warn('Not currently listening to Uniswap V3 factory events');
       return;
     }
 
@@ -71,9 +70,9 @@ export class PoolService {
       this.unsubscribe();
       this.unsubscribe = null;
       this.isListening = false;
-      logger.info('✅ Stopped listening to Uniswap V2 factory events');
+      logger.info('✅ Stopped listening to Uniswap V3 factory events');
     } catch (error) {
-      logger.error('❌ Error stopping Uniswap V2 factory event listener:', error);
+      logger.error('❌ Error stopping Uniswap V3 factory event listener:', error);
       throw error;
     }
   }
@@ -81,9 +80,15 @@ export class PoolService {
   /**
    * Handle new pool creation event
    */
-  private static async handleNewPool(args: any): Promise<void> {
+  private static async handleNewPool(args: {
+    token0: string;
+    token1: string;
+    fee: number;
+    tickSpacing: number;
+    pool: string;
+  }): Promise<void> {
     try {
-      const { token0, token1, pair } = args;
+      const { token0, token1, fee, tickSpacing, pool } = args;
       
       // Check if one of the tokens is WETH
       if (
@@ -94,18 +99,20 @@ export class PoolService {
           ? getAddress(token1) 
           : getAddress(token0);
 
-        logger.info('🚀 New V2 Pool with ETH Detected:', {
+        logger.info('🚀 New V3 Pool with ETH Detected:', {
           token0: getAddress(token0),
           token1: getAddress(token1),
-          pair: getAddress(pair),
+          fee,
+          tickSpacing,
+          pool: getAddress(pool),
           tokenAddress
         });
 
         // Create pool object
-        const pool = await this.createPoolFromEvent(tokenAddress, getAddress(pair));
+        const newPool = await this.createPoolFromEvent(tokenAddress, getAddress(pool));
         
         // Send notifications to active users
-        await this.notifyUsersOfNewPool(pool);
+        await this.notifyUsersOfNewPool(newPool);
       }
     } catch (error) {
       logger.error('Error handling new pool event:', error);
@@ -124,7 +131,7 @@ export class PoolService {
         id: Date.now(),
         chain: 'eth',
         address: pairAddress,
-        exchange: 'uniswapv2',
+        exchange: 'uniswapv3',
         base_address: tokenAddress,
         quote_address: WETH_ADDRESS,
         quote_symbol: 'WETH',
@@ -273,7 +280,7 @@ export class PoolService {
   private static async sendPoolAlert(telegramId: string, pool: Pool): Promise<void> {
     try {
       const alertMessage = `
-🚨 New Uniswap V2 Pool Detected!
+🚨 New Uniswap V3 Pool Detected!
 
 💰 ${pool.base_token_info.symbol} (${pool.base_token_info.name})
 🏪 DEX: ${pool.exchange}
@@ -287,7 +294,7 @@ export class PoolService {
 • Symbol: ${pool.base_token_info.symbol}
 • Name: ${pool.base_token_info.name}
 
-⚡ This pool was just created on Uniswap V2!
+⚡ This pool was just created on Uniswap V3!
       `;
 
       await TelegramBotService.sendNotification(telegramId, alertMessage);
@@ -307,7 +314,7 @@ export class PoolService {
             telegramUserId: telegramUser.id,
             metadata: {
               pool,
-              source: 'uniswap_v2_factory_event'
+              source: 'uniswap_v3_factory_event'
             }
           }
         });
@@ -455,7 +462,7 @@ export class PoolService {
       
       return [];
     } catch (error) {
-      logger.error('Error fetching from CoinGecko:', error);
+      // logger.error('Error fetching from CoinGecko:', error);
       return [];
     }
   }
@@ -465,7 +472,7 @@ export class PoolService {
    */
   private static async fetchFromDexScreener(options: any): Promise<Pool[]> {
     try {
-      const response = await axios.get(`${this.DEXSCREENER_API}/dex/pairs/ethereum/uniswapv2`, {
+      const response = await axios.get(`${this.DEXSCREENER_API}/dex/pairs/ethereum/uniswapv3`, {
         timeout: 10000
       });
 
@@ -485,7 +492,7 @@ export class PoolService {
       
       return [];
     } catch (error) {
-      logger.error('Error fetching from DexScreener:', error);
+      // logger.error('Error fetching from DexScreener:', error);
       return [];
     }
   }
@@ -541,7 +548,7 @@ export class PoolService {
       
       return [];
     } catch (error) {
-      logger.error('Error fetching from Uniswap:', error);
+      // logger.error('Error fetching from Uniswap:', error);
       return [];
     }
   }
@@ -706,7 +713,7 @@ export class PoolService {
       id: index,
       chain: 'eth',
       address: pair.id || `0x${Math.random().toString(16).substr(2, 40)}`,
-      exchange: 'uniswapv2',
+      exchange: 'uniswapv3',
       base_address: pair.token0?.id || `0x${Math.random().toString(16).substr(2, 40)}`,
       quote_address: pair.token1?.id || '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
       quote_symbol: pair.token1?.symbol || 'WETH',
@@ -857,7 +864,7 @@ export class PoolService {
         id: 1492572 + i,
         chain: options.chain || 'eth',
         address: `0x${Math.random().toString(16).substr(2, 40)}`,
-        exchange: options.exchange || 'univ2',
+        exchange: options.exchange || 'uniswapv3',
         base_address: `0x${Math.random().toString(16).substr(2, 40)}`,
         quote_address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
         quote_symbol: 'WETH',
@@ -974,4 +981,4 @@ export class PoolService {
       throw error;
     }
   }
-} 
+}

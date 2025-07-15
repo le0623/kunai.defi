@@ -6,9 +6,6 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { createServer, Server } from 'http';
-import { Server as HttpsServer } from 'https';
-import { createServer as createHttpsServer } from 'https';
-import { readFileSync } from 'fs';
 import dotenv from 'dotenv';
 
 import { connectDatabase, disconnectDatabase } from '@/config/database';
@@ -57,25 +54,10 @@ const app = express();
 // Trust proxy for rate limiting behind reverse proxy
 app.set('trust proxy', 1);
 
-let server: Server | HttpsServer;
+// Initialize server
+const server: Server = createServer(app);
 
-// Initialize HTTPS server if SSL certificates are available
-const sslKeyPath = process.env['SSL_KEY_PATH'] || './ssl/key.pem';
-const sslCertPath = process.env['SSL_CERT_PATH'] || './ssl/cert.pem';
-
-try {
-  const privateKey = readFileSync(sslKeyPath, 'utf8');
-  const certificate = readFileSync(sslCertPath, 'utf8');
-  const credentials = { key: privateKey, cert: certificate };
-
-  server = createHttpsServer(credentials, app);
-  logger.info('🔒 HTTPS server initialized with SSL certificates');
-} catch (error) {
-  logger.warn('⚠️ SSL certificates not found, falling back to HTTP server');
-  server = createServer(app);
-}
-
-// Initialize real-time service
+// Initialize real-time service (WebSocket)
 RealtimeService.initialize(server);
 
 // Security middleware
@@ -161,10 +143,9 @@ const startServer = async () => {
     await connectDatabase();
 
     // Start server
-    server.listen(PORT, '0.0.0.0', () => {
-      const protocol = server instanceof HttpsServer ? 'https' : 'http';
-      logger.info(`🚀 Server running on port ${PORT} (${protocol.toUpperCase()})`);
-      logger.info(`📊 Health check: ${protocol}://0.0.0.0:${PORT}/health`);
+    server.listen(PORT, () => {
+      logger.info(`🚀 Server running on port ${PORT} (HTTP)`);
+      logger.info(`📊 Health check: http://localhost:${PORT}/health`);
       logger.info(`🔌 Real-time monitoring: Active`);
     });
 
@@ -190,8 +171,7 @@ const gracefulShutdown = async (signal: string) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
 
   server.close(async () => {
-    const protocol = server instanceof HttpsServer ? 'HTTPS' : 'HTTP';
-    logger.info(`${protocol} server closed`);
+    logger.info(`HTTP server closed`);
 
     try {
       await disconnectDatabase();
