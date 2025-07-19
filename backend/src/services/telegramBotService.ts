@@ -80,7 +80,7 @@ export class TelegramBotService {
    */
   private static setupCommands(): void {
     // Start command
-    this.bot.start(async (ctx) => {
+    this.bot.start(async ctx => {
       const user = ctx.from;
       if (!user) return;
 
@@ -90,8 +90,8 @@ export class TelegramBotService {
       const telegramUser = await prisma.telegramUser.findUnique({
         where: { id: user.id.toString() },
         include: {
-          proxyWallet: true
-        }
+          proxyWallet: true,
+        },
       });
 
       let welcomeMessage = `
@@ -142,21 +142,27 @@ Status: ${proxyWallet.isActive ? '✅ Active' : '❌ Inactive'}
           inline_keyboard: [
             [
               { text: '💰 Approve ETH', callback_data: 'approve_eth' },
-              { text: '💵 Approve USDC', callback_data: 'approve_usdc' }
+              { text: '💵 Approve USDC', callback_data: 'approve_usdc' },
             ],
             [
-              { text: '⚙️ Configure Trading', callback_data: 'configure_trading' },
-              { text: '📊 View Status', callback_data: 'wallet_status' }
+              {
+                text: '⚙️ Configure Trading',
+                callback_data: 'configure_trading',
+              },
+              { text: '📊 View Status', callback_data: 'wallet_status' },
             ],
             [
               { text: '📊 View Portfolio', callback_data: 'view_portfolio' },
-              { text: '🚨 View Alerts', callback_data: 'view_alerts' }
+              { text: '🚨 View Alerts', callback_data: 'view_alerts' },
             ],
             [
-              { text: '📈 Start Monitoring', callback_data: 'start_monitoring' },
-              { text: '❓ Help', callback_data: 'help' }
-            ]
-          ]
+              {
+                text: '📈 Start Monitoring',
+                callback_data: 'start_monitoring',
+              },
+              { text: '❓ Help', callback_data: 'help' },
+            ],
+          ],
         };
       } else {
         // User doesn't have proxy wallet - show setup option
@@ -169,27 +175,30 @@ Ready to start? Use /setup_wallet to begin!
           inline_keyboard: [
             [
               { text: '🔐 Setup Proxy Wallet', callback_data: 'setup_wallet' },
-              { text: '⚙️ Configure Bot', callback_data: 'configure_bot' }
+              { text: '⚙️ Configure Bot', callback_data: 'configure_bot' },
             ],
             [
               { text: '📊 View Portfolio', callback_data: 'view_portfolio' },
-              { text: '🚨 View Alerts', callback_data: 'view_alerts' }
+              { text: '🚨 View Alerts', callback_data: 'view_alerts' },
             ],
             [
-              { text: '📈 Start Monitoring', callback_data: 'start_monitoring' },
-              { text: '❓ Help', callback_data: 'help' }
-            ]
-          ]
+              {
+                text: '📈 Start Monitoring',
+                callback_data: 'start_monitoring',
+              },
+              { text: '❓ Help', callback_data: 'help' },
+            ],
+          ],
         };
       }
 
       await ctx.reply(welcomeMessage, {
-        reply_markup: inlineKeyboard
+        reply_markup: inlineKeyboard,
       });
     });
 
     // Help command
-    this.bot.help(async (ctx) => {
+    this.bot.help(async ctx => {
       const helpMessage = `
 📚 KunAI Sniper Bot Commands:
 
@@ -233,77 +242,77 @@ Ready to start? Use /setup_wallet to begin!
     });
 
     // Wallet setup commands
-    this.bot.command('setup_wallet', async (ctx) => {
+    this.bot.command('setup_wallet', async ctx => {
       await this.handleSetupWalletCommand(ctx);
     });
 
-    this.bot.command('wallet_address', async (ctx) => {
+    this.bot.command('wallet_address', async ctx => {
       await this.handleWalletAddressCommand(ctx);
     });
 
-    this.bot.command('wallet_status', async (ctx) => {
+    this.bot.command('wallet_status', async ctx => {
       await this.handleWalletStatusCommand(ctx);
     });
 
-    this.bot.command('approve_tokens', async (ctx) => {
+    this.bot.command('approve_tokens', async ctx => {
       await this.handleApproveTokensCommand(ctx);
     });
 
     // Configuration commands
-    this.bot.command('config', async (ctx) => {
+    this.bot.command('config', async ctx => {
       await this.handleConfigCommand(ctx);
     });
 
-    this.bot.command('config_view', async (ctx) => {
+    this.bot.command('config_view', async ctx => {
       await this.handleConfigViewCommand(ctx);
     });
 
-    this.bot.command('config_reset', async (ctx) => {
+    this.bot.command('config_reset', async ctx => {
       await this.handleConfigResetCommand(ctx);
     });
 
     // Monitoring commands
-    this.bot.command('monitor', async (ctx) => {
+    this.bot.command('monitor', async ctx => {
       await this.handleMonitorCommand(ctx);
     });
 
-    this.bot.command('stop', async (ctx) => {
+    this.bot.command('stop', async ctx => {
       await this.handleStopCommand(ctx);
     });
 
-    this.bot.command('status', async (ctx) => {
+    this.bot.command('status', async ctx => {
       await this.handleStatusCommand(ctx);
     });
 
-    this.bot.command('pools', async (ctx) => {
+    this.bot.command('pools', async ctx => {
       await this.handlePoolsCommand(ctx);
     });
 
     // Trading commands
-    this.bot.command('trade', async (ctx) => {
+    this.bot.command('trade', async ctx => {
       await this.handleTradeCommand(ctx);
     });
 
-    this.bot.command('portfolio', async (ctx) => {
+    this.bot.command('portfolio', async ctx => {
       await this.handlePortfolioCommand(ctx);
     });
 
-    this.bot.command('balance', async (ctx) => {
+    this.bot.command('balance', async ctx => {
       await this.handleBalanceCommand(ctx);
     });
 
     // Alert commands
-    this.bot.command('alerts', async (ctx) => {
+    this.bot.command('alerts', async ctx => {
       await this.handleAlertsCommand(ctx);
     });
 
     // Analytics commands
-    this.bot.command('analytics', async (ctx) => {
+    this.bot.command('analytics', async ctx => {
       await this.handleAnalyticsCommand(ctx);
     });
 
     // Support command
-    this.bot.command('support', async (ctx) => {
+    this.bot.command('support', async ctx => {
       await ctx.reply(`
 📞 Support Information:
 
@@ -318,15 +327,13 @@ Version: 1.0.0
     });
 
     // WebApp command
-    this.bot.command('webapp', async (ctx) => {
+    this.bot.command('webapp', async ctx => {
       await ctx.reply('🌐 Opening KunAI WebApp...', {
         reply_markup: {
           inline_keyboard: [
-            [
-              { text: '🌐 Open WebApp', web_app: { url: this.WEBAPP_URL } }
-            ]
-          ]
-        }
+            [{ text: '🌐 Open WebApp', web_app: { url: this.WEBAPP_URL } }],
+          ],
+        },
       });
     });
 
@@ -338,75 +345,75 @@ Version: 1.0.0
    * Setup callback handlers for inline buttons
    */
   private static setupCallbackHandlers(): void {
-    this.bot.action('setup_wallet', async (ctx) => {
+    this.bot.action('setup_wallet', async ctx => {
       await this.handleSetupWalletCommand(ctx);
     });
 
-    this.bot.action('configure_bot', async (ctx) => {
+    this.bot.action('configure_bot', async ctx => {
       await this.handleConfigCommand(ctx);
     });
 
-    this.bot.action('view_portfolio', async (ctx) => {
+    this.bot.action('view_portfolio', async ctx => {
       await this.handlePortfolioCommand(ctx);
     });
 
-    this.bot.action('view_alerts', async (ctx) => {
+    this.bot.action('view_alerts', async ctx => {
       await this.handleAlertsCommand(ctx);
     });
 
-    this.bot.action('start_monitoring', async (ctx) => {
+    this.bot.action('start_monitoring', async ctx => {
       await this.handleMonitorCommand(ctx);
     });
 
-    this.bot.action('help', async (ctx) => {
+    this.bot.action('help', async ctx => {
       await this.handleHelpCommand(ctx);
     });
 
     // Wallet setup callbacks
-    this.bot.action('deploy_proxy', async (ctx) => {
+    this.bot.action('deploy_proxy', async ctx => {
       await this.handleDeployProxyCallback(ctx);
     });
 
-    this.bot.action('approve_eth', async (ctx) => {
+    this.bot.action('approve_eth', async ctx => {
       await this.handleApproveEthCallback(ctx);
     });
 
-    this.bot.action('approve_usdc', async (ctx) => {
+    this.bot.action('approve_usdc', async ctx => {
       await this.handleApproveUsdcCallback(ctx);
     });
 
     // Trading callbacks
-    this.bot.action('quick_trade', async (ctx) => {
+    this.bot.action('quick_trade', async ctx => {
       await this.handleQuickTradeCallback(ctx);
     });
 
-    this.bot.action('view_trades', async (ctx) => {
+    this.bot.action('view_trades', async ctx => {
       await this.handleViewTradesCallback(ctx);
     });
 
-    this.bot.action('manage_approvals', async (ctx) => {
+    this.bot.action('manage_approvals', async ctx => {
       await this.handleManageApprovalsCallback(ctx);
     });
 
-    this.bot.action('analytics', async (ctx) => {
+    this.bot.action('analytics', async ctx => {
       await this.handleAnalyticsCommand(ctx);
     });
 
-    this.bot.action('refresh_portfolio', async (ctx) => {
+    this.bot.action('refresh_portfolio', async ctx => {
       await ctx.answerCbQuery('Refreshing portfolio...');
       await this.handlePortfolioCommand(ctx);
     });
 
-    this.bot.action('refresh_approvals', async (ctx) => {
+    this.bot.action('refresh_approvals', async ctx => {
       await ctx.answerCbQuery('Refreshing approvals...');
       await this.handleManageApprovalsCallback(ctx);
     });
 
-    this.bot.action('approvals_analytics', async (ctx) => {
+    this.bot.action('approvals_analytics', async ctx => {
       await this.handleApprovalsAnalyticsCallback(ctx);
     });
 
-    this.bot.action('retry_webapp_action', async (ctx) => {
+    this.bot.action('retry_webapp_action', async ctx => {
       await this.handleRetryWebAppAction(ctx);
     });
   }
@@ -423,8 +430,8 @@ Version: 1.0.0
       const telegramUser = await prisma.telegramUser.findUnique({
         where: { id: userId },
         include: {
-          proxyWallet: true
-        }
+          proxyWallet: true,
+        },
       });
 
       if (!telegramUser) {
@@ -457,14 +464,17 @@ What would you like to do?
             inline_keyboard: [
               [
                 { text: '💰 Approve ETH', callback_data: 'approve_eth' },
-                { text: '💵 Approve USDC', callback_data: 'approve_usdc' }
+                { text: '💵 Approve USDC', callback_data: 'approve_usdc' },
               ],
               [
-                { text: '⚙️ Configure Trading', callback_data: 'configure_trading' },
-                { text: '📊 View Status', callback_data: 'wallet_status' }
-              ]
-            ]
-          }
+                {
+                  text: '⚙️ Configure Trading',
+                  callback_data: 'configure_trading',
+                },
+                { text: '📊 View Status', callback_data: 'wallet_status' },
+              ],
+            ],
+          },
         });
         return;
       }
@@ -494,15 +504,13 @@ Use /wallet_address <your_address> to set your wallet
       await ctx.reply(setupMessage, {
         reply_markup: {
           inline_keyboard: [
-            [
-              { text: '🚀 Deploy Proxy Wallet', callback_data: 'deploy_proxy' }
-            ],
+            [{ text: '🚀 Deploy Proxy Wallet', callback_data: 'deploy_proxy' }],
             [
               { text: '📋 How It Works', callback_data: 'how_it_works' },
-              { text: '❓ FAQ', callback_data: 'faq' }
-            ]
-          ]
-        }
+              { text: '❓ FAQ', callback_data: 'faq' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error in setup wallet command:', error);
@@ -515,7 +523,9 @@ Use /wallet_address <your_address> to set your wallet
    */
   private static async handleWalletAddressCommand(ctx: Context): Promise<void> {
     if (!ctx.message || !('text' in ctx.message)) {
-      await ctx.reply('❌ Please send a text message with your wallet address.');
+      await ctx.reply(
+        '❌ Please send a text message with your wallet address.'
+      );
       return;
     }
 
@@ -538,7 +548,9 @@ Use /wallet_address <your_address> to set your wallet
 
     // Basic Ethereum address validation
     if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-      await ctx.reply('❌ Invalid Ethereum address format. Please provide a valid address starting with 0x.');
+      await ctx.reply(
+        '❌ Invalid Ethereum address format. Please provide a valid address starting with 0x.'
+      );
       return;
     }
 
@@ -547,8 +559,8 @@ Use /wallet_address <your_address> to set your wallet
       await prisma.telegramUser.update({
         where: { id: userId },
         data: {
-          walletAddress: walletAddress.toLowerCase()
-        }
+          walletAddress: walletAddress.toLowerCase(),
+        },
       });
 
       const successMessage = `
@@ -569,17 +581,14 @@ Ready to deploy your proxy wallet?
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [
-              { text: '🚀 Deploy Proxy Wallet', callback_data: 'deploy_proxy' }
-            ],
+            [{ text: '🚀 Deploy Proxy Wallet', callback_data: 'deploy_proxy' }],
             [
               { text: '📊 View Status', callback_data: 'wallet_status' },
-              { text: '⚙️ Configure', callback_data: 'configure_bot' }
-            ]
-          ]
-        }
+              { text: '⚙️ Configure', callback_data: 'configure_bot' },
+            ],
+          ],
+        },
       });
-
     } catch (error) {
       logger.error('Error setting wallet address:', error);
       await ctx.reply('❌ Error setting wallet address. Please try again.');
@@ -599,8 +608,8 @@ Ready to deploy your proxy wallet?
       const telegramUser = await prisma.telegramUser.findUnique({
         where: { id: userId },
         include: {
-          proxyWallet: true
-        }
+          proxyWallet: true,
+        },
       });
 
       if (!telegramUser) {
@@ -633,14 +642,17 @@ What would you like to do?
             inline_keyboard: [
               [
                 { text: '💰 Approve ETH', callback_data: 'approve_eth' },
-                { text: '💵 Approve USDC', callback_data: 'approve_usdc' }
+                { text: '💵 Approve USDC', callback_data: 'approve_usdc' },
               ],
               [
-                { text: '⚙️ Configure Trading', callback_data: 'configure_trading' },
-                { text: '📊 View Status', callback_data: 'wallet_status' }
-              ]
-            ]
-          }
+                {
+                  text: '⚙️ Configure Trading',
+                  callback_data: 'configure_trading',
+                },
+                { text: '📊 View Status', callback_data: 'wallet_status' },
+              ],
+            ],
+          },
         });
         return;
       }
@@ -648,7 +660,9 @@ What would you like to do?
       const userAddress = telegramUser.walletAddress;
 
       if (!userAddress) {
-        await ctx.reply('❌ Please set your wallet address first with /wallet_address');
+        await ctx.reply(
+          '❌ Please set your wallet address first with /wallet_address'
+        );
         return;
       }
 
@@ -662,7 +676,9 @@ What would you like to do?
         gasPrice: '20',
       };
 
-      logger.info(`Creating proxy wallet for user ${userId} with address ${userAddress}`);
+      logger.info(
+        `Creating proxy wallet for user ${userId} with address ${userAddress}`
+      );
 
       const proxyAddress = await SniperBotService.createProxyWallet(
         userAddress as Address,
@@ -679,7 +695,7 @@ What would you like to do?
           maxSlippage: proxyConfig.maxSlippage,
           dailyTradeLimit: proxyConfig.dailyTradeLimit,
           telegramUserId: userId,
-        }
+        },
       });
 
       const successMessage = `
@@ -705,14 +721,17 @@ Your proxy wallet is ready! 🚀
           inline_keyboard: [
             [
               { text: '💰 Approve ETH', callback_data: 'approve_eth' },
-              { text: '💵 Approve USDC', callback_data: 'approve_usdc' }
+              { text: '💵 Approve USDC', callback_data: 'approve_usdc' },
             ],
             [
-              { text: '⚙️ Configure Trading', callback_data: 'configure_trading' },
-              { text: '📊 View Status', callback_data: 'wallet_status' }
-            ]
-          ]
-        }
+              {
+                text: '⚙️ Configure Trading',
+                callback_data: 'configure_trading',
+              },
+              { text: '📊 View Status', callback_data: 'wallet_status' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error(`Error creating proxy wallet for user ${userId}:`, error);
@@ -756,14 +775,14 @@ Or use the command:
           inline_keyboard: [
             [
               { text: '🌐 Open dApp', url: 'https://app.kunai.com/approve' },
-              { text: '📱 Use Command', callback_data: 'use_approve_command' }
+              { text: '📱 Use Command', callback_data: 'use_approve_command' },
             ],
             [
-              { text: '✅ I\'ve Approved', callback_data: 'approval_complete' },
-              { text: '❓ Help', callback_data: 'approval_help' }
-            ]
-          ]
-        }
+              { text: "✅ I've Approved", callback_data: 'approval_complete' },
+              { text: '❓ Help', callback_data: 'approval_help' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error in approve ETH callback:', error);
@@ -806,14 +825,14 @@ Or use the command:
           inline_keyboard: [
             [
               { text: '🌐 Open dApp', url: 'https://app.kunai.com/approve' },
-              { text: '📱 Use Command', callback_data: 'use_approve_command' }
+              { text: '📱 Use Command', callback_data: 'use_approve_command' },
             ],
             [
-              { text: '✅ I\'ve Approved', callback_data: 'approval_complete' },
-              { text: '❓ Help', callback_data: 'approval_help' }
-            ]
-          ]
-        }
+              { text: "✅ I've Approved", callback_data: 'approval_complete' },
+              { text: '❓ Help', callback_data: 'approval_help' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error in approve USDC callback:', error);
@@ -829,7 +848,7 @@ Or use the command:
     if (!userId) return;
 
     try {
-      const telegramUser = await prisma.telegramUser.findUnique({
+      const telegramUser = (await prisma.telegramUser.findUnique({
         where: { id: userId },
         include: {
           proxyWallet: {
@@ -837,16 +856,16 @@ Or use the command:
               approvals: true,
               trades: {
                 orderBy: { createdAt: 'desc' },
-                take: 10
-              }
-            }
-          }
-        }
-      }) as Prisma.TelegramUserGetPayload<{
+                take: 10,
+              },
+            },
+          },
+        },
+      })) as Prisma.TelegramUserGetPayload<{
         include: {
           proxyWallet: {
             include: {
-              approvals: true,
+              approvals: true;
               trades: {
                 orderBy: {
                   createdAt: 'desc';
@@ -859,7 +878,9 @@ Or use the command:
       }>;
 
       if (!telegramUser || !telegramUser.proxyWallet) {
-        await ctx.editMessageText('❌ No proxy wallet found. Use /setup_wallet to create one.');
+        await ctx.editMessageText(
+          '❌ No proxy wallet found. Use /setup_wallet to create one.'
+        );
         return;
       }
 
@@ -880,11 +901,15 @@ Or use the command:
 • Max Slippage: ${proxyWallet.maxSlippage / 100}%
 
 📊 Approvals:
-${proxyWallet.approvals && proxyWallet.approvals.length > 0
-          ? proxyWallet.approvals.map((approval: any) =>
-            `• ${approval.tokenAddress}: ${approval.amount}`
-          ).join('\n')
-          : '• No approvals set'}
+${
+  proxyWallet.approvals && proxyWallet.approvals.length > 0
+    ? proxyWallet.approvals
+        .map(
+          (approval: any) => `• ${approval.tokenAddress}: ${approval.amount}`
+        )
+        .join('\n')
+    : '• No approvals set'
+}
 
 📈 Recent Trades: ${proxyWallet.trades ? proxyWallet.trades.length : 0}
       `;
@@ -895,14 +920,17 @@ ${proxyWallet.approvals && proxyWallet.approvals.length > 0
           inline_keyboard: [
             [
               { text: '📊 View Trades', callback_data: 'view_trades' },
-              { text: '💰 Manage Approvals', callback_data: 'manage_approvals' }
+              {
+                text: '💰 Manage Approvals',
+                callback_data: 'manage_approvals',
+              },
             ],
             [
               { text: '⚙️ Update Limits', callback_data: 'update_limits' },
-              { text: '🔄 Refresh', callback_data: 'refresh_status' }
-            ]
-          ]
-        }
+              { text: '🔄 Refresh', callback_data: 'refresh_status' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error getting wallet status:', error);
@@ -915,7 +943,9 @@ ${proxyWallet.approvals && proxyWallet.approvals.length > 0
    */
   private static async handleApproveTokensCommand(ctx: Context): Promise<void> {
     if (!ctx.message || !('text' in ctx.message)) {
-      await ctx.reply('❌ Please send a text message with the approve command.');
+      await ctx.reply(
+        '❌ Please send a text message with the approve command.'
+      );
       return;
     }
 
@@ -950,14 +980,20 @@ To approve ${tokenSymbol}:
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '🌐 Open dApp', url: `https://app.kunai.com/approve?token=${tokenSymbol}&amount=${amount}` }
+            {
+              text: '🌐 Open dApp',
+              url: `https://app.kunai.com/approve?token=${tokenSymbol}&amount=${amount}`,
+            },
           ],
           [
-            { text: '✅ Approval Complete', callback_data: 'approval_complete' },
-            { text: '❓ Need Help?', callback_data: 'approval_help' }
-          ]
-        ]
-      }
+            {
+              text: '✅ Approval Complete',
+              callback_data: 'approval_complete',
+            },
+            { text: '❓ Need Help?', callback_data: 'approval_help' },
+          ],
+        ],
+      },
     });
   }
 
@@ -995,15 +1031,15 @@ To approve ${tokenSymbol}:
           username: user.username || null,
           firstName: user.first_name || null,
           lastName: user.last_name || null,
-          lastActive: new Date()
+          lastActive: new Date(),
         },
         create: {
           id: user.id.toString(),
           username: user.username || null,
           firstName: user.first_name || null,
           lastName: user.last_name || null,
-          lastActive: new Date()
-        }
+          lastActive: new Date(),
+        },
       });
     } catch (error) {
       logger.error('Error saving telegram user:', error);
@@ -1121,7 +1157,9 @@ Bot Status: ${config.enabled ? '✅ Active' : '❌ Inactive'}
 
     try {
       await this.startMonitoring(userId);
-      await ctx.reply('✅ Pool monitoring started! You will receive alerts for new opportunities.');
+      await ctx.reply(
+        '✅ Pool monitoring started! You will receive alerts for new opportunities.'
+      );
     } catch (error) {
       logger.error('Error starting monitoring:', error);
       await ctx.reply('❌ Error starting monitoring');
@@ -1184,12 +1222,14 @@ ${status.recentActivity.join('\n')}
         timeframe: '1h',
         limit: 5,
         sortBy: 'market_cap',
-        sortOrder: 'desc'
+        sortOrder: 'desc',
       });
 
       // Check if pools data is available
       if (!pools || !pools.pools || pools.pools.length === 0) {
-        await ctx.reply('📊 No pools data available at the moment. Please try again later.');
+        await ctx.reply(
+          '📊 No pools data available at the moment. Please try again later.'
+        );
         return;
       }
 
@@ -1234,7 +1274,9 @@ ${status.recentActivity.join('\n')}
       return;
     }
 
-    await ctx.reply(`🔄 Executing trade for ${amount} ETH on ${tokenAddress}...`);
+    await ctx.reply(
+      `🔄 Executing trade for ${amount} ETH on ${tokenAddress}...`
+    );
 
     // TODO: Implement actual trade execution
     setTimeout(async () => {
@@ -1251,7 +1293,7 @@ ${status.recentActivity.join('\n')}
 
     try {
       // Fetch user's proxy wallet with all related data
-      const telegramUser = await prisma.telegramUser.findUnique({
+      const telegramUser = (await prisma.telegramUser.findUnique({
         where: { id: userId },
         include: {
           proxyWallet: {
@@ -1259,16 +1301,16 @@ ${status.recentActivity.join('\n')}
               approvals: true,
               trades: {
                 orderBy: { createdAt: 'desc' },
-                take: 50
-              }
-            }
-          }
-        }
-      }) as Prisma.TelegramUserGetPayload<{
+                take: 50,
+              },
+            },
+          },
+        },
+      })) as Prisma.TelegramUserGetPayload<{
         include: {
           proxyWallet: {
             include: {
-              approvals: true,
+              approvals: true;
               trades: {
                 orderBy: {
                   createdAt: 'desc';
@@ -1286,7 +1328,9 @@ ${status.recentActivity.join('\n')}
       }
 
       if (!telegramUser.proxyWallet) {
-        await ctx.reply('❌ No proxy wallet found. Use /setup_wallet to create one.');
+        await ctx.reply(
+          '❌ No proxy wallet found. Use /setup_wallet to create one.'
+        );
         return;
       }
 
@@ -1295,17 +1339,27 @@ ${status.recentActivity.join('\n')}
       const approvals = proxyWallet.approvals || [];
 
       // Get proxy wallet ETH balance
-      const ethBalance = await this.getProxyWalletBalance(proxyWallet.proxyAddress);
+      const ethBalance = await this.getProxyWalletBalance(
+        proxyWallet.proxyAddress
+      );
       const ethValue = ethBalance * 2000; // Assuming ETH price of $2000
 
       // Calculate portfolio metrics
       const totalTrades = trades.length;
-      const successfulTrades = trades.filter(trade => trade.status === 'executed').length;
-      const failedTrades = trades.filter(trade => trade.status === 'failed').length;
-      const winRate = totalTrades > 0 ? (successfulTrades / totalTrades * 100).toFixed(1) : '0';
+      const successfulTrades = trades.filter(
+        trade => trade.status === 'executed'
+      ).length;
+      const failedTrades = trades.filter(
+        trade => trade.status === 'failed'
+      ).length;
+      const winRate =
+        totalTrades > 0
+          ? ((successfulTrades / totalTrades) * 100).toFixed(1)
+          : '0';
 
       // Calculate total value and 24h changes
-      const { totalValue, totalValue24hAgo, holdings } = await this.calculatePortfolioValue(approvals);
+      const { totalValue, totalValue24hAgo, holdings } =
+        await this.calculatePortfolioValue(approvals);
 
       // Add ETH to total value
       const totalPortfolioValue = totalValue + ethValue;
@@ -1313,7 +1367,10 @@ ${status.recentActivity.join('\n')}
 
       // Calculate 24h change
       const change24h = totalPortfolioValue - totalPortfolioValue24hAgo;
-      const change24hPercent = totalPortfolioValue24hAgo > 0 ? (change24h / totalPortfolioValue24hAgo * 100) : 0;
+      const change24hPercent =
+        totalPortfolioValue24hAgo > 0
+          ? (change24h / totalPortfolioValue24hAgo) * 100
+          : 0;
 
       // Get recent trades for history
       const recentTrades = trades.slice(0, 10);
@@ -1333,8 +1390,14 @@ ${status.recentActivity.join('\n')}
           return amountOut - amountIn;
         });
 
-      const totalProfit = successfulTradeValues.reduce((sum, profit) => sum + profit, 0);
-      const averageProfit = successfulTradeValues.length > 0 ? totalProfit / successfulTradeValues.length : 0;
+      const totalProfit = successfulTradeValues.reduce(
+        (sum, profit) => sum + profit,
+        0
+      );
+      const averageProfit =
+        successfulTradeValues.length > 0
+          ? totalProfit / successfulTradeValues.length
+          : 0;
 
       const portfolioMessage = `
 💼 Your Portfolio:
@@ -1344,9 +1407,16 @@ ${status.recentActivity.join('\n')}
 
 🏪 Holdings:
 • ETH: ${ethBalance.toFixed(4)} ETH ($${ethValue.toFixed(2)})
-${holdings.length > 0 ? holdings.map(holding =>
-        `• ${this.formatTokenAddress(holding.token)}: ${holding.amount} @ $${holding.price.toFixed(4)} ($${holding.value.toFixed(2)}) ${holding.change24h >= 0 ? '📈' : '📉'} ${holding.change24h >= 0 ? '+' : ''}${holding.change24h.toFixed(2)}%`
-      ).join('\n') : ''}
+${
+  holdings.length > 0
+    ? holdings
+        .map(
+          holding =>
+            `• ${this.formatTokenAddress(holding.token)}: ${holding.amount} @ $${holding.price.toFixed(4)} ($${holding.value.toFixed(2)}) ${holding.change24h >= 0 ? '📈' : '📉'} ${holding.change24h >= 0 ? '+' : ''}${holding.change24h.toFixed(2)}%`
+        )
+        .join('\n')
+    : ''
+}
 
 📊 Performance:
 • Total Trades: ${totalTrades}
@@ -1357,17 +1427,27 @@ ${holdings.length > 0 ? holdings.map(holding =>
 • Average Profit: $${averageProfit.toFixed(2)}
 
 📈 Recent Trade History:
-${tradeHistory.length > 0 ? tradeHistory.map(trade => {
-        const parts = trade.split(' → ');
-        if (parts.length === 2) {
-          const tokenIn = this.formatTokenAddress(parts[0]?.split(' ').pop() || '');
-          const tokenOut = this.formatTokenAddress(parts[1]?.split(' ')[0] || '');
-          const timeInfo = parts[1]?.match(/\((.*?)\)/)?.[1] || '';
-          const status = trade.includes('✅') ? '✅' : '❌';
-          return `${status} ${tokenIn} → ${tokenOut} (${timeInfo})`;
-        }
-        return trade;
-      }).join('\n') : '• No trades yet'}
+${
+  tradeHistory.length > 0
+    ? tradeHistory
+        .map(trade => {
+          const parts = trade.split(' → ');
+          if (parts.length === 2) {
+            const tokenIn = this.formatTokenAddress(
+              parts[0]?.split(' ').pop() || ''
+            );
+            const tokenOut = this.formatTokenAddress(
+              parts[1]?.split(' ')[0] || ''
+            );
+            const timeInfo = parts[1]?.match(/\((.*?)\)/)?.[1] || '';
+            const status = trade.includes('✅') ? '✅' : '❌';
+            return `${status} ${tokenIn} → ${tokenOut} (${timeInfo})`;
+          }
+          return trade;
+        })
+        .join('\n')
+    : '• No trades yet'
+}
 
 🔗 Proxy Wallet: \`${this.formatTokenAddress(proxyWallet.proxyAddress)}\`
       `;
@@ -1378,14 +1458,17 @@ ${tradeHistory.length > 0 ? tradeHistory.map(trade => {
           inline_keyboard: [
             [
               { text: '📊 View All Trades', callback_data: 'view_trades' },
-              { text: '💰 Manage Approvals', callback_data: 'manage_approvals' }
+              {
+                text: '💰 Manage Approvals',
+                callback_data: 'manage_approvals',
+              },
             ],
             [
               { text: '📈 Analytics', callback_data: 'analytics' },
-              { text: '🔄 Refresh', callback_data: 'refresh_portfolio' }
-            ]
-          ]
-        }
+              { text: '🔄 Refresh', callback_data: 'refresh_portfolio' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error getting portfolio:', error);
@@ -1491,8 +1574,8 @@ Use /alert_remove <id> to remove alert
         minMarketCap: 100000,
         maxMarketCap: 10000000,
         honeypotCheck: true,
-        lockCheck: true
-      }
+        lockCheck: true,
+      },
     };
   }
 
@@ -1530,20 +1613,23 @@ Use /alert_remove <id> to remove alert
       totalTrades: 47,
       successfulTrades: 32,
       failedTrades: 15,
-      totalProfit: 3420.50,
+      totalProfit: 3420.5,
       lastTrade: '2 hours ago',
       recentActivity: [
         '✅ Bought TOKEN1 for 0.05 ETH',
         '❌ Failed to buy TOKEN2 (insufficient liquidity)',
-        '✅ Sold TOKEN3 for 0.08 ETH (+60% profit)'
-      ]
+        '✅ Sold TOKEN3 for 0.08 ETH (+60% profit)',
+      ],
     };
   }
 
   /**
    * Send notification to user
    */
-  static async sendNotification(userId: string, message: string): Promise<void> {
+  static async sendNotification(
+    userId: string,
+    message: string
+  ): Promise<void> {
     if (!this.isInitialized) {
       logger.warn('Telegram bot not initialized');
       return;
@@ -1559,7 +1645,11 @@ Use /alert_remove <id> to remove alert
   /**
    * Send error notification to user
    */
-  static async sendErrorNotification(userId: string, error: string, context?: string): Promise<void> {
+  static async sendErrorNotification(
+    userId: string,
+    error: string,
+    context?: string
+  ): Promise<void> {
     if (!this.isInitialized) {
       logger.warn('Telegram bot not initialized');
       return;
@@ -1586,7 +1676,11 @@ Please try again or contact support if the issue persists.
   /**
    * Send WebApp error notification to user
    */
-  static async sendWebAppErrorNotification(userId: string, error: string, action?: string): Promise<void> {
+  static async sendWebAppErrorNotification(
+    userId: string,
+    error: string,
+    action?: string
+  ): Promise<void> {
     if (!this.isInitialized) {
       logger.warn('Telegram bot not initialized');
       return;
@@ -1619,7 +1713,11 @@ ${action ? `**Action:** ${action}\n` : ''}
   /**
    * Send system error notification to user
    */
-  static async sendSystemErrorNotification(userId: string, error: string, component?: string): Promise<void> {
+  static async sendSystemErrorNotification(
+    userId: string,
+    error: string,
+    component?: string
+  ): Promise<void> {
     if (!this.isInitialized) {
       logger.warn('Telegram bot not initialized');
       return;
@@ -1757,14 +1855,14 @@ Select an option to continue:
           inline_keyboard: [
             [
               { text: '💰 Trade with ETH', callback_data: 'trade_eth' },
-              { text: '💵 Trade with USDC', callback_data: 'trade_usdc' }
+              { text: '💵 Trade with USDC', callback_data: 'trade_usdc' },
             ],
             [
               { text: '🔄 Swap Tokens', callback_data: 'swap_tokens' },
-              { text: '📊 View Prices', callback_data: 'view_prices' }
-            ]
-          ]
-        }
+              { text: '📊 View Prices', callback_data: 'view_prices' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error in quick trade callback:', error);
@@ -1782,23 +1880,23 @@ Select an option to continue:
     try {
       await ctx.answerCbQuery('Loading trades...');
 
-      const telegramUser = await prisma.telegramUser.findUnique({
+      const telegramUser = (await prisma.telegramUser.findUnique({
         where: { id: userId },
         include: {
           proxyWallet: {
             include: {
               trades: {
                 orderBy: { createdAt: 'desc' },
-                take: 10
-              }
-            }
-          }
-        }
-      }) as Prisma.TelegramUserGetPayload<{
+                take: 10,
+              },
+            },
+          },
+        },
+      })) as Prisma.TelegramUserGetPayload<{
         include: {
           proxyWallet: {
             include: {
-              approvals: true,
+              approvals: true;
               trades: {
                 orderBy: {
                   createdAt: 'desc';
@@ -1811,7 +1909,9 @@ Select an option to continue:
       }>;
 
       if (!telegramUser || !telegramUser.proxyWallet) {
-        await ctx.editMessageText('❌ No proxy wallet found. Use /setup_wallet to create one.');
+        await ctx.editMessageText(
+          '❌ No proxy wallet found. Use /setup_wallet to create one.'
+        );
         return;
       }
 
@@ -1836,10 +1936,10 @@ Select an option to continue:
           inline_keyboard: [
             [
               { text: '🔄 Refresh', callback_data: 'refresh_trades' },
-              { text: '📈 Analytics', callback_data: 'trade_analytics' }
-            ]
-          ]
-        }
+              { text: '📈 Analytics', callback_data: 'trade_analytics' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error viewing trades:', error);
@@ -1850,14 +1950,16 @@ Select an option to continue:
   /**
    * Handle manage approvals callback
    */
-  private static async handleManageApprovalsCallback(ctx: Context): Promise<void> {
+  private static async handleManageApprovalsCallback(
+    ctx: Context
+  ): Promise<void> {
     const userId = ctx.from?.id.toString();
     if (!userId) return;
 
     try {
       await ctx.answerCbQuery('Loading manage approvals...');
 
-      const telegramUser = await prisma.telegramUser.findUnique({
+      const telegramUser = (await prisma.telegramUser.findUnique({
         where: { id: userId },
         include: {
           proxyWallet: {
@@ -1865,16 +1967,16 @@ Select an option to continue:
               approvals: true,
               trades: {
                 orderBy: { createdAt: 'desc' },
-                take: 10
-              }
-            }
-          }
-        }
-      }) as Prisma.TelegramUserGetPayload<{
+                take: 10,
+              },
+            },
+          },
+        },
+      })) as Prisma.TelegramUserGetPayload<{
         include: {
           proxyWallet: {
             include: {
-              approvals: true,
+              approvals: true;
               trades: {
                 orderBy: {
                   createdAt: 'desc';
@@ -1887,7 +1989,9 @@ Select an option to continue:
       }>;
 
       if (!telegramUser || !telegramUser.proxyWallet) {
-        await ctx.editMessageText('❌ No proxy wallet found. Use /setup_wallet to create one.');
+        await ctx.editMessageText(
+          '❌ No proxy wallet found. Use /setup_wallet to create one.'
+        );
         return;
       }
 
@@ -1912,10 +2016,10 @@ Select an option to continue:
           inline_keyboard: [
             [
               { text: '🔄 Refresh', callback_data: 'refresh_approvals' },
-              { text: '📈 Analytics', callback_data: 'approvals_analytics' }
-            ]
-          ]
-        }
+              { text: '📈 Analytics', callback_data: 'approvals_analytics' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error managing approvals:', error);
@@ -1926,7 +2030,9 @@ Select an option to continue:
   /**
    * Get token price (placeholder for real price API integration)
    */
-  private static async getTokenPrice(tokenAddress: string): Promise<{ price: number; change24h: number }> {
+  private static async getTokenPrice(
+    tokenAddress: string
+  ): Promise<{ price: number; change24h: number }> {
     // TODO: Integrate with real price API (CoinGecko, CoinMarketCap, etc.)
     // For now, return placeholder data
     const basePrice = Math.random() * 100 + 1; // Random price between $1-$100
@@ -1934,7 +2040,7 @@ Select an option to continue:
 
     return {
       price: basePrice,
-      change24h: change24h
+      change24h: change24h,
     };
   }
 
@@ -1944,14 +2050,28 @@ Select an option to continue:
   private static async calculatePortfolioValue(approvals: any[]): Promise<{
     totalValue: number;
     totalValue24hAgo: number;
-    holdings: Array<{ token: string, amount: string, value: number, change24h: number, price: number }>
+    holdings: Array<{
+      token: string;
+      amount: string;
+      value: number;
+      change24h: number;
+      price: number;
+    }>;
   }> {
     let totalValue = 0;
     let totalValue24hAgo = 0;
-    const holdings: Array<{ token: string, amount: string, value: number, change24h: number, price: number }> = [];
+    const holdings: Array<{
+      token: string;
+      amount: string;
+      value: number;
+      change24h: number;
+      price: number;
+    }> = [];
 
     for (const approval of approvals) {
-      const { price, change24h } = await this.getTokenPrice(approval.tokenAddress);
+      const { price, change24h } = await this.getTokenPrice(
+        approval.tokenAddress
+      );
       const amount = parseFloat(approval.amount) || 0;
       const tokenValue = amount * price;
       const value24hAgo = tokenValue / (1 + change24h / 100);
@@ -1961,7 +2081,7 @@ Select an option to continue:
         amount: approval.amount,
         value: tokenValue,
         change24h: change24h,
-        price: price
+        price: price,
       });
 
       totalValue += tokenValue;
@@ -1974,14 +2094,16 @@ Select an option to continue:
   /**
    * Handle approvals analytics callback
    */
-  private static async handleApprovalsAnalyticsCallback(ctx: Context): Promise<void> {
+  private static async handleApprovalsAnalyticsCallback(
+    ctx: Context
+  ): Promise<void> {
     const userId = ctx.from?.id.toString();
     if (!userId) return;
 
     try {
       await ctx.answerCbQuery('Loading approvals analytics...');
 
-      const telegramUser = await prisma.telegramUser.findUnique({
+      const telegramUser = (await prisma.telegramUser.findUnique({
         where: { id: userId },
         include: {
           proxyWallet: {
@@ -1989,16 +2111,16 @@ Select an option to continue:
               approvals: true,
               trades: {
                 orderBy: { createdAt: 'desc' },
-                take: 100
-              }
-            }
-          }
-        }
-      }) as Prisma.TelegramUserGetPayload<{
+                take: 100,
+              },
+            },
+          },
+        },
+      })) as Prisma.TelegramUserGetPayload<{
         include: {
           proxyWallet: {
             include: {
-              approvals: true,
+              approvals: true;
               trades: {
                 orderBy: {
                   createdAt: 'desc';
@@ -2011,7 +2133,9 @@ Select an option to continue:
       }>;
 
       if (!telegramUser || !telegramUser.proxyWallet) {
-        await ctx.editMessageText('❌ No proxy wallet found. Use /setup_wallet to create one.');
+        await ctx.editMessageText(
+          '❌ No proxy wallet found. Use /setup_wallet to create one.'
+        );
         return;
       }
 
@@ -2021,17 +2145,26 @@ Select an option to continue:
 
       // Calculate approval analytics
       const totalApprovals = approvals.length;
-      const totalApprovalValue = approvals.reduce((sum, approval) => sum + (parseFloat(approval.amount) || 0), 0);
-      const averageApproval = totalApprovals > 0 ? totalApprovalValue / totalApprovals : 0;
+      const totalApprovalValue = approvals.reduce(
+        (sum, approval) => sum + (parseFloat(approval.amount) || 0),
+        0
+      );
+      const averageApproval =
+        totalApprovals > 0 ? totalApprovalValue / totalApprovals : 0;
 
       // Calculate usage analytics
       const usedApprovals = approvals.filter(approval => {
-        return trades.some(trade =>
-          trade.tokenIn === approval.tokenAddress || trade.tokenOut === approval.tokenAddress
+        return trades.some(
+          trade =>
+            trade.tokenIn === approval.tokenAddress ||
+            trade.tokenOut === approval.tokenAddress
         );
       });
 
-      const usageRate = totalApprovals > 0 ? (usedApprovals.length / totalApprovals * 100).toFixed(1) : '0';
+      const usageRate =
+        totalApprovals > 0
+          ? ((usedApprovals.length / totalApprovals) * 100).toFixed(1)
+          : '0';
 
       // Get most used tokens
       const tokenUsage = new Map<string, number>();
@@ -2056,14 +2189,22 @@ Select an option to continue:
 • Usage Rate: ${usageRate}%
 
 🎯 Most Used Tokens:
-${mostUsedTokens.length > 0 ? mostUsedTokens.map(([token, count]) =>
-        `• ${token}: ${count} trades`
-      ).join('\n') : '• No trades yet'}
+${
+  mostUsedTokens.length > 0
+    ? mostUsedTokens
+        .map(([token, count]) => `• ${token}: ${count} trades`)
+        .join('\n')
+    : '• No trades yet'
+}
 
 📈 Recent Approval Activity:
-${approvals.slice(0, 5).map(approval =>
-        `• ${approval.tokenAddress}: ${approval.amount} (${new Date(approval.createdAt).toLocaleDateString()})`
-      ).join('\n')}
+${approvals
+  .slice(0, 5)
+  .map(
+    approval =>
+      `• ${approval.tokenAddress}: ${approval.amount} (${new Date(approval.createdAt).toLocaleDateString()})`
+  )
+  .join('\n')}
 
 💡 Recommendations:
 • Consider increasing approval for frequently used tokens
@@ -2076,10 +2217,10 @@ ${approvals.slice(0, 5).map(approval =>
           inline_keyboard: [
             [
               { text: '🔄 Refresh', callback_data: 'refresh_approvals' },
-              { text: '📊 Portfolio', callback_data: 'refresh_portfolio' }
-            ]
-          ]
-        }
+              { text: '📊 Portfolio', callback_data: 'refresh_portfolio' },
+            ],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error getting approvals analytics:', error);
@@ -2090,7 +2231,9 @@ ${approvals.slice(0, 5).map(approval =>
   /**
    * Get proxy wallet ETH balance
    */
-  private static async getProxyWalletBalance(proxyAddress: string): Promise<number> {
+  private static async getProxyWalletBalance(
+    proxyAddress: string
+  ): Promise<number> {
     try {
       // TODO: Integrate with real blockchain RPC to get actual balance
       // For now, return a placeholder balance
@@ -2122,14 +2265,12 @@ ${approvals.slice(0, 5).map(approval =>
       await ctx.reply('🌐 Opening WebApp...', {
         reply_markup: {
           inline_keyboard: [
-            [
-              { text: '🌐 Open WebApp', web_app: { url: this.WEBAPP_URL } }
-            ]
-          ]
-        }
+            [{ text: '🌐 Open WebApp', web_app: { url: this.WEBAPP_URL } }],
+          ],
+        },
       });
     } catch (error) {
       logger.error('Error handling retry WebApp action:', error);
     }
   }
-} 
+}

@@ -1,24 +1,25 @@
-import { Router } from 'express';
-import { body, validationResult } from 'express-validator';
+import { NextFunction, Request, Response, Router } from 'express';
+import { body, param, validationResult } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { WalletController } from '@/controllers/walletController';
 
-const router = Router();
+const router: Router = Router();
 
-// Get monitored wallets for authenticated user
-router.get('/monitored', authenticateToken, WalletController.getMonitoredWallets);
+// Get user's in-app wallet
+router.get('/my-wallet', authenticateToken, WalletController.getUserWallet);
 
-// Add wallet to monitoring list
-router.post('/monitor', 
-  authenticateToken,
+// Get wallet balance
+router.get(
+  '/balance/:address',
   [
-    body('address').isEthereumAddress().withMessage('Valid Ethereum address required'),
-    body('label').optional().isString().trim().isLength({ max: 100 })
+    param('address')
+      .isEthereumAddress()
+      .withMessage('Valid Ethereum address required'),
   ],
-  (req, res, next) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid request data',
         errors: errors.array(),
@@ -26,25 +27,115 @@ router.post('/monitor',
     }
     next();
   },
-  WalletController.addWalletToMonitoring
+  WalletController.getWalletBalance
 );
 
-// Remove wallet from monitoring
-router.delete('/monitor/:address', authenticateToken, WalletController.removeWalletFromMonitoring);
+// Execute a trade
+router.post(
+  '/trade',
+  authenticateToken,
+  [
+    body('tokenIn')
+      .isEthereumAddress()
+      .withMessage('Valid token address required'),
+    body('tokenOut')
+      .isEthereumAddress()
+      .withMessage('Valid token address required'),
+    body('amountIn').isString().notEmpty().withMessage('Amount is required'),
+    body('minAmountOut')
+      .isString()
+      .notEmpty()
+      .withMessage('Minimum output amount is required'),
+  ],
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid request data',
+        errors: errors.array(),
+      });
+    }
+    next();
+  },
+  WalletController.executeTrade
+);
 
-// Get wallet activity
-router.get('/activity/:address', authenticateToken, WalletController.getWalletActivity);
+// Fund wallet (for testing/demo)
+router.post(
+  '/fund',
+  [
+    body('address')
+      .isEthereumAddress()
+      .withMessage('Valid Ethereum address required'),
+    body('amount').isString().notEmpty().withMessage('Amount is required'),
+  ],
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid request data',
+        errors: errors.array(),
+      });
+    }
+    next();
+  },
+  WalletController.fundWallet
+);
 
-// Get wallet portfolio
-router.get('/portfolio/:address', authenticateToken, WalletController.getWalletPortfolio);
+// Update wallet configuration
+router.put(
+  '/config',
+  authenticateToken,
+  [
+    body('maxTradeAmount')
+      .optional()
+      .isString()
+      .withMessage('Max trade amount must be a string'),
+    body('maxSlippage')
+      .optional()
+      .isInt({ min: 0, max: 1000 })
+      .withMessage('Max slippage must be 0-1000'),
+    body('dailyTradeLimit')
+      .optional()
+      .isString()
+      .withMessage('Daily trade limit must be a string'),
+  ],
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid request data',
+        errors: errors.array(),
+      });
+    }
+    next();
+  },
+  WalletController.updateWalletConfig
+);
 
-// Get smart wallet labels
-router.get('/labels/:address', authenticateToken, WalletController.getSmartWalletLabel);
+// Get transaction history
+router.get(
+  '/history/:address',
+  [
+    param('address')
+      .isEthereumAddress()
+      .withMessage('Valid Ethereum address required'),
+  ],
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid request data',
+        errors: errors.array(),
+      });
+    }
+    next();
+  },
+  WalletController.getTransactionHistory
+);
 
-// Get alerts for user
-router.get('/alerts', authenticateToken, WalletController.getUserAlerts);
-
-// Mark alert as read
-router.patch('/alerts/:id/read', authenticateToken, WalletController.markAlertAsRead);
-
-export default router; 
+export default router;

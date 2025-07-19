@@ -24,15 +24,15 @@ async function seed() {
     const user1 = await prisma.user.create({
       data: {
         address: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
-        nonce: 'test-nonce-1'
-      }
+        nonce: 'test-nonce-1',
+      },
     });
 
     const user2 = await prisma.user.create({
       data: {
         address: '0x8ba1f109551bD432803012645Hac136c772c3c7c',
-        nonce: 'test-nonce-2'
-      }
+        nonce: 'test-nonce-2',
+      },
     });
 
     logger.info('👥 Created test users');
@@ -44,27 +44,27 @@ async function seed() {
         label: 'Whale Wallet',
         category: 'whale',
         confidence: 0.9,
-        source: 'kunai-analyzer'
+        source: 'kunai-analyzer',
       },
       {
         address: '0x8ba1f109551bD432803012645Hac136c772c3c7c',
         label: 'Active Trader',
         category: 'trader',
         confidence: 0.8,
-        source: 'kunai-analyzer'
+        source: 'kunai-analyzer',
       },
       {
         address: '0x1f9090aaE28b8a3dCeaDf281B0F12828e676c326',
         label: 'DeFi User',
         category: 'defi',
         confidence: 0.7,
-        source: 'kunai-analyzer'
-      }
+        source: 'kunai-analyzer',
+      },
     ];
 
     for (const wallet of smartWallets) {
       await prisma.smartWalletLabel.create({
-        data: wallet
+        data: wallet,
       });
     }
 
@@ -77,8 +77,8 @@ async function seed() {
         label: 'Whale Wallet',
         isSmart: true,
         riskScore: 15,
-        userId: user1.id
-      }
+        userId: user1.id,
+      },
     });
 
     const monitoredWallet2 = await prisma.monitoredWallet.create({
@@ -87,8 +87,8 @@ async function seed() {
         label: 'Active Trader',
         isSmart: true,
         riskScore: 25,
-        userId: user1.id
-      }
+        userId: user1.id,
+      },
     });
 
     logger.info('👀 Created monitored wallets');
@@ -109,7 +109,7 @@ async function seed() {
         tokenSymbol: 'USDC',
         tokenAmount: '1800000000', // 1800 USDC
         tokenDecimals: 6,
-        monitoredWalletId: monitoredWallet1.id
+        monitoredWalletId: monitoredWallet1.id,
       },
       {
         hash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
@@ -125,13 +125,13 @@ async function seed() {
         tokenSymbol: 'USDT',
         tokenAmount: '900000000', // 900 USDT
         tokenDecimals: 6,
-        monitoredWalletId: monitoredWallet2.id
-      }
+        monitoredWalletId: monitoredWallet2.id,
+      },
     ];
 
     for (const tx of transactions) {
       await prisma.transaction.create({
-        data: tx
+        data: tx,
       });
     }
 
@@ -147,7 +147,7 @@ async function seed() {
         tokenName: 'USD Coin',
         balance: '1800000000',
         valueUSD: '1800.00',
-        priceUSD: '1.00'
+        priceUSD: '1.00',
       },
       {
         monitoredWalletId: monitoredWallet1.id,
@@ -157,7 +157,7 @@ async function seed() {
         tokenName: 'Ethereum',
         balance: '5000000000000000000',
         valueUSD: '10000.00',
-        priceUSD: '2000.00'
+        priceUSD: '2000.00',
       },
       {
         monitoredWalletId: monitoredWallet2.id,
@@ -167,13 +167,13 @@ async function seed() {
         tokenName: 'Tether USD',
         balance: '900000000',
         valueUSD: '900.00',
-        priceUSD: '1.00'
-      }
+        priceUSD: '1.00',
+      },
     ];
 
     for (const portfolio of portfolios) {
       await prisma.portfolio.create({
-        data: portfolio
+        data: portfolio,
       });
     }
 
@@ -184,24 +184,32 @@ async function seed() {
       {
         type: 'buy',
         severity: 'low',
-        message: 'Smart wallet 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6 made a buy transaction',
-        metadata: { transactionHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
+        message:
+          'Smart wallet 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6 made a buy transaction',
+        metadata: {
+          transactionHash:
+            '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        },
         userId: user1.id,
-        monitoredWalletId: monitoredWallet1.id
+        monitoredWalletId: monitoredWallet1.id,
       },
       {
         type: 'sell',
         severity: 'high',
-        message: 'Smart wallet 0x8ba1f109551bD432803012645Hac136c772c3c7c made a sell transaction',
-        metadata: { transactionHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' },
+        message:
+          'Smart wallet 0x8ba1f109551bD432803012645Hac136c772c3c7c made a sell transaction',
+        metadata: {
+          transactionHash:
+            '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        },
         userId: user1.id,
-        monitoredWalletId: monitoredWallet2.id
-      }
+        monitoredWalletId: monitoredWallet2.id,
+      },
     ];
 
     for (const alert of alerts) {
       await prisma.alert.create({
-        data: alert
+        data: alert,
       });
     }
 
@@ -222,7 +230,7 @@ async function seed() {
         riskScore: 5,
         riskFactors: [],
         lastAnalyzed: new Date(),
-        analysisSource: 'kunai-analyzer'
+        analysisSource: 'kunai-analyzer',
       },
       {
         contractAddress: '0xa0b86a33e6441b8c4c8c8c8c8c8c8c8c8c8c8c8c',
@@ -237,13 +245,13 @@ async function seed() {
         riskScore: 0,
         riskFactors: [],
         lastAnalyzed: new Date(),
-        analysisSource: 'kunai-analyzer'
-      }
+        analysisSource: 'kunai-analyzer',
+      },
     ];
 
     for (const contract of contractAnalysis) {
       await prisma.contractAnalysis.create({
-        data: contract
+        data: contract,
       });
     }
 
@@ -258,11 +266,11 @@ async function seed() {
           strategy: 'dollar_cost_averaging',
           interval: 'daily',
           amount: '100',
-          tokens: ['ETH', 'USDC']
+          tokens: ['ETH', 'USDC'],
         },
         status: 'running',
         lastRun: new Date(),
-        userId: user1.id
+        userId: user1.id,
       },
       {
         name: 'Arbitrage Bot',
@@ -270,16 +278,16 @@ async function seed() {
         config: {
           strategy: 'arbitrage',
           minProfit: '0.5',
-          exchanges: ['uniswap', 'sushiswap']
+          exchanges: ['uniswap', 'sushiswap'],
         },
         status: 'stopped',
-        userId: user1.id
-      }
+        userId: user1.id,
+      },
     ];
 
     for (const bot of tradingBots) {
       await prisma.tradingBot.create({
-        data: bot
+        data: bot,
       });
     }
 
@@ -292,13 +300,13 @@ async function seed() {
         allocation: 50.0,
         maxSlippage: 2.0,
         isActive: true,
-        userId: user1.id
-      }
+        userId: user1.id,
+      },
     ];
 
     for (const copyTrade of copyTrades) {
       await prisma.copyTrade.create({
-        data: copyTrade
+        data: copyTrade,
       });
     }
 
@@ -313,7 +321,6 @@ async function seed() {
     logger.info(`📋 Created ${contractAnalysis.length} contract analyses`);
     logger.info(`🤖 Created ${tradingBots.length} trading bots`);
     logger.info(`📋 Created ${copyTrades.length} copy trading entries`);
-
   } catch (error) {
     logger.error('❌ Error seeding database:', error);
     throw error;
@@ -329,10 +336,10 @@ if (require.main === module) {
       logger.info('🎉 Seed completed successfully');
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(error => {
       logger.error('💥 Seed failed:', error);
       process.exit(1);
     });
 }
 
-export default seed; 
+export default seed;

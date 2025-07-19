@@ -16,14 +16,22 @@ router.get('/me', verifyTelegramToken, TgWebAppController.getUserData);
  * @desc Deploy proxy wallet
  * @access Private
  */
-router.post('/wallet/deploy', verifyTelegramToken, TgWebAppController.deployProxyWallet);
+router.post(
+  '/wallet/deploy',
+  verifyTelegramToken,
+  TgWebAppController.deployProxyWallet
+);
 
 /**
  * @route POST /api/tg-webapp/monitor-pool
  * @desc Monitor pool
  * @access Private
  */
-router.post('/monitor-pool', verifyTelegramToken, TgWebAppController.monitorPool);
+router.post(
+  '/monitor-pool',
+  verifyTelegramToken,
+  TgWebAppController.monitorPool
+);
 
 /**
  * @route GET /api/tg-webapp/pools
@@ -46,4 +54,4 @@ router.post('/trade', verifyTelegramToken, TgWebAppController.executeTrade);
  */
 router.put('/config', verifyTelegramToken, TgWebAppController.updateConfig);
 
-export default router; 
+export default router;

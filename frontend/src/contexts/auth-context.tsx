@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { authAPI } from '@/services/api'
 import { storageService, useStorageListener } from '@/services/localstorage'
+import { useDisconnect } from 'wagmi'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -9,6 +10,7 @@ interface AuthContextType {
   showAuthDlg: (show?: boolean) => void
   checkAuthStatus: () => Promise<void>
   logout: () => Promise<void>
+  login: (token: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -20,6 +22,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthDlgOpen, setIsAuthDlgOpen] = useState(false)
   const [isAuth, setIsAuth] = useState(false)
+  const { disconnect } = useDisconnect()
 
   const showAuthDlg = (show: boolean = true) => {
     setIsAuthDlgOpen(show)
@@ -53,6 +56,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
+      disconnect()
       await authAPI.logout()
     } catch (error) {
       console.error('Logout failed:', error)
@@ -60,6 +64,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsAuth(false)
       storageService.removeItem('authToken')
     }
+  }
+
+  const login = (token: string) => {
+    storageService.setItem('authToken', token)
+    setIsAuth(true)
+    setIsAuthDlgOpen(false)
   }
 
   // Check auth status on mount
@@ -79,6 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     showAuthDlg,
     checkAuthStatus,
     logout,
+    login,
   }
 
   return (

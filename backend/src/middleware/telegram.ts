@@ -21,7 +21,7 @@ export const verifyTelegramToken = (
   }
 
   try {
-    validate(initData, botToken, {expiresIn: 10000});
+    validate(initData, botToken, { expiresIn: 10000 });
   } catch (error) {
     logger.error('error', error);
     res.status(401).json({ error: 'Invalid initData signature' });

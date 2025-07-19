@@ -99,4 +99,4 @@ export interface PoolsQueryParams {
   exchange?: string;
   sortBy?: 'market_cap' | 'volume' | 'holder_count' | 'open_timestamp';
   sortOrder?: 'asc' | 'desc';
-} 
+}

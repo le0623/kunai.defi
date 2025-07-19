@@ -3,14 +3,14 @@
 # Function to run database migrations
 run_migrations() {
     echo "Running database migrations..."
-    pnpm db:push
+    cd /app && pnpm --filter kunai-backend db:push
     echo "Database migrations completed!"
 }
 
 # Function to start development server
 start_dev_server() {
     echo "Starting development server..."
-    pnpm dev
+    cd /app && pnpm --filter kunai-backend dev
 }
 
 echo "Starting Kunai Backend Development Environment..."

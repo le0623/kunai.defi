@@ -1,22 +1,32 @@
 # Build stage
 FROM node:22.17.0-alpine
 
-WORKDIR /kunai-frontend
+# Create app directory
+WORKDIR /app
 
-# Copy source code
-COPY . .
+# Copy workspace configuration files
+COPY package.json pnpm-workspace.yaml ./
 
-# Install pnpm
+# Copy shared package
+COPY shared ./shared
+
+# Copy frontend files
+COPY frontend ./frontend
+
+# Install pnpm globally
 RUN npm install -g pnpm
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (pnpm will resolve workspace dependencies)
+RUN pnpm install
 
-# Expose port 5173
+# Set working directory to frontend
+WORKDIR /app/frontend
+
+# Expose ports
 EXPOSE 5173
 
 # Start script
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY frontend/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]

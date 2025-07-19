@@ -43,19 +43,22 @@ export class SmartContractService {
     config: ProxyWalletConfig
   ): Promise<Address> {
     try {
-      logger.info(`Deploying proxy wallet for user ${userAddress} with config:`, config);
+      logger.info(
+        `Deploying proxy wallet for user ${userAddress} with config:`,
+        config
+      );
 
       // Prepare the transaction parameters
       const args = [
         userAddress as Address,
         parseEther(config.maxTradeAmount),
         BigInt(config.maxSlippage),
-        parseEther(config.dailyTradeLimit)
+        parseEther(config.dailyTradeLimit),
       ] as const;
 
       // Simulate the transaction first
       logger.info('Simulating transaction...');
-      console.log(account.address)
+      console.log(account.address);
       const { result, request } = await publicClient.simulateContract({
         address: this.factoryAddress as Address,
         abi: proxyWalletFactoryAbi,
@@ -83,7 +86,9 @@ export class SmartContractService {
         throw new Error('Failed to get proxy wallet address from deployment');
       }
 
-      logger.info(`Deployed proxy wallet ${proxyAddress} for user ${userAddress}`);
+      logger.info(
+        `Deployed proxy wallet ${proxyAddress} for user ${userAddress}`
+      );
       return proxyAddress;
     } catch (error) {
       logger.error('Error deploying proxy wallet:', error);
@@ -94,13 +99,19 @@ export class SmartContractService {
   /**
    * Get user's proxy wallet address
    */
-  static async getUserProxyWallet(userAddress: Address, telegramUserId: string): Promise<Address | null> {
+  static async getUserProxyWallet(
+    userAddress: Address,
+    telegramUserId: string
+  ): Promise<Address | null> {
     try {
       const proxyWallet = await prisma.proxyWallet.findUnique({
-        where: { userAddress: userAddress.toLowerCase(), telegramUserId: telegramUserId }
+        where: {
+          userAddress: userAddress.toLowerCase(),
+          telegramUserId: telegramUserId,
+        },
       });
 
-      return proxyWallet?.proxyAddress as Address || null;
+      return (proxyWallet?.proxyAddress as Address) || null;
     } catch (error) {
       logger.error('Error getting user proxy wallet:', error);
       return null;
@@ -110,7 +121,9 @@ export class SmartContractService {
   /**
    * Get user's proxy wallet address from factory contract
    */
-  static async getProxyWalletFromFactory(userAddress: Address): Promise<Address | null> {
+  static async getProxyWalletFromFactory(
+    userAddress: Address
+  ): Promise<Address | null> {
     try {
       if (!this.factoryAddress) {
         throw new Error('Smart contract service not initialized');
@@ -120,13 +133,13 @@ export class SmartContractService {
         address: this.factoryAddress as Address,
         abi: proxyWalletFactoryAbi,
         functionName: 'getProxyWallet',
-        args: [userAddress]
+        args: [userAddress],
       });
-      
+
       if (proxyAddress && proxyAddress !== zeroAddress) {
         return proxyAddress as Address;
       }
-      
+
       return null;
     } catch (error) {
       logger.error('Error getting proxy wallet from factory:', error);
@@ -143,13 +156,20 @@ export class SmartContractService {
     tradeRequest: TradeRequest
   ): Promise<string> {
     try {
-      const proxyAddress = await this.getUserProxyWallet(userAddress, telegramUserId);
+      const proxyAddress = await this.getUserProxyWallet(
+        userAddress,
+        telegramUserId
+      );
       if (!proxyAddress) {
         throw new Error('User does not have a proxy wallet');
       }
 
       // Generate unique trade ID
-      const tradeId = '0x' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const tradeId =
+        '0x' +
+        Array.from({ length: 32 }, () => Math.floor(Math.random() * 256))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
 
       // Prepare the transaction parameters
       const args = [
@@ -160,7 +180,7 @@ export class SmartContractService {
         tradeRequest.minAmountOut,
         BigInt(tradeRequest.deadline),
         tradeId as Address,
-        tradeRequest.dexData as Address
+        tradeRequest.dexData as Address,
       ] as const;
 
       // Simulate the transaction first
@@ -179,11 +199,15 @@ export class SmartContractService {
 
       // Send the transaction
       const hash = await walletClient.writeContract(request);
-      logger.info(`Trade transaction sent: ${hash}, waiting for confirmation...`);
+      logger.info(
+        `Trade transaction sent: ${hash}, waiting for confirmation...`
+      );
 
       // Wait for transaction confirmation
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      logger.info(`Trade transaction confirmed in block ${receipt.blockNumber}`);
+      logger.info(
+        `Trade transaction confirmed in block ${receipt.blockNumber}`
+      );
 
       // Save trade to database
       await prisma.proxyTrade.create({
@@ -199,8 +223,8 @@ export class SmartContractService {
           dexData: tradeRequest.dexData,
           status: 'executed',
           txHash: hash,
-          executedAt: new Date()
-        }
+          executedAt: new Date(),
+        },
       });
 
       logger.info(`Executed trade ${tradeId} for user ${userAddress}`);
@@ -221,16 +245,16 @@ export class SmartContractService {
     amount: string
   ): Promise<void> {
     try {
-      const proxyAddress = await this.getUserProxyWallet(userAddress, telegramUserId);
+      const proxyAddress = await this.getUserProxyWallet(
+        userAddress,
+        telegramUserId
+      );
       if (!proxyAddress) {
         throw new Error('User does not have a proxy wallet');
       }
 
       // Prepare the transaction parameters
-      const args = [
-        tokenAddress as Address,
-        amount
-      ] as const;
+      const args = [tokenAddress as Address, amount] as const;
 
       // Simulate the transaction first
       logger.info('Simulating approval transaction...');
@@ -248,7 +272,9 @@ export class SmartContractService {
 
       // Send the transaction
       const hash = await walletClient.writeContract(request);
-      logger.info(`Approval transaction sent: ${hash}, waiting for confirmation...`);
+      logger.info(
+        `Approval transaction sent: ${hash}, waiting for confirmation...`
+      );
 
       // Wait for transaction confirmation
       await publicClient.waitForTransactionReceipt({ hash });
@@ -258,22 +284,24 @@ export class SmartContractService {
         where: {
           userAddress_tokenAddress: {
             userAddress: userAddress.toLowerCase(),
-            tokenAddress: tokenAddress.toLowerCase()
-          }
+            tokenAddress: tokenAddress.toLowerCase(),
+          },
         },
         update: {
           amount: amount,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         create: {
           userAddress: userAddress.toLowerCase(),
           proxyAddress: proxyAddress.toLowerCase(),
           tokenAddress: tokenAddress.toLowerCase(),
-          amount: amount
-        }
+          amount: amount,
+        },
       });
 
-      logger.info(`Updated approval for user ${userAddress}, token ${tokenAddress}`);
+      logger.info(
+        `Updated approval for user ${userAddress}, token ${tokenAddress}`
+      );
     } catch (error) {
       logger.error('Error updating approval:', error);
       throw error;
@@ -283,17 +311,23 @@ export class SmartContractService {
   /**
    * Get user's proxy wallet configuration
    */
-  static async getUserConfig(userAddress: Address, telegramUserId: string): Promise<any> {
+  static async getUserConfig(
+    userAddress: Address,
+    telegramUserId: string
+  ): Promise<any> {
     try {
       const proxyWallet = await prisma.proxyWallet.findUnique({
-        where: { userAddress: userAddress.toLowerCase(), telegramUserId: telegramUserId },
+        where: {
+          userAddress: userAddress.toLowerCase(),
+          telegramUserId: telegramUserId,
+        },
         include: {
           approvals: true,
           trades: {
             orderBy: { executedAt: 'desc' },
-            take: 10
-          }
-        }
+            take: 10,
+          },
+        },
       });
 
       return proxyWallet;
@@ -302,4 +336,4 @@ export class SmartContractService {
       throw error;
     }
   }
-} 
+}

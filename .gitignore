@@ -1,3 +1,4 @@
 .ssl
 .backups
 .env
+node_modules

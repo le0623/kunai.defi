@@ -11,7 +11,7 @@ const FooterItem = ({ icon, label }: { icon: React.ReactNode, label: string }) =
 
 const Footer = () => {
   return (
-    <footer className="h-9 border-t border-border bg-background p-2 flex items-center justify-between">
+    <footer className="h-9 border-t border-border bg-background-secondary p-2 flex items-center justify-between">
       {/* Left Section - Trading Tools */}
       <div className="flex items-center gap-1">
         <FooterItem icon={<Wallet className="w-3 h-3" />} label="Wallet Tracker" />

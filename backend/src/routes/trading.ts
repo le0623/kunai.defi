@@ -8,11 +8,12 @@ const router = Router();
 // Trading Bots
 router.get('/bots', authenticateToken, TradingController.getTradingBots);
 
-router.post('/bots', 
+router.post(
+  '/bots',
   authenticateToken,
   [
     body('name').isString().notEmpty().withMessage('Bot name is required'),
-    body('config').isObject().withMessage('Bot configuration is required')
+    body('config').isObject().withMessage('Bot configuration is required'),
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -28,12 +29,13 @@ router.post('/bots',
   TradingController.createTradingBot
 );
 
-router.put('/bots/:id', 
+router.put(
+  '/bots/:id',
   authenticateToken,
   [
     body('name').optional().isString().notEmpty(),
     body('config').optional().isObject(),
-    body('isActive').optional().isBoolean()
+    body('isActive').optional().isBoolean(),
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -49,17 +51,29 @@ router.put('/bots/:id',
   TradingController.updateTradingBot
 );
 
-router.delete('/bots/:id', authenticateToken, TradingController.deleteTradingBot);
+router.delete(
+  '/bots/:id',
+  authenticateToken,
+  TradingController.deleteTradingBot
+);
 
 // Copy Trading
 router.get('/copy-trades', authenticateToken, TradingController.getCopyTrades);
 
-router.post('/copy-trades', 
+router.post(
+  '/copy-trades',
   authenticateToken,
   [
-    body('targetAddress').isEthereumAddress().withMessage('Valid Ethereum address required'),
-    body('allocation').isFloat({ min: 0, max: 100 }).withMessage('Allocation must be between 0 and 100'),
-    body('maxSlippage').optional().isFloat({ min: 0, max: 10 }).withMessage('Max slippage must be between 0 and 10')
+    body('targetAddress')
+      .isEthereumAddress()
+      .withMessage('Valid Ethereum address required'),
+    body('allocation')
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('Allocation must be between 0 and 100'),
+    body('maxSlippage')
+      .optional()
+      .isFloat({ min: 0, max: 10 })
+      .withMessage('Max slippage must be between 0 and 10'),
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -75,12 +89,13 @@ router.post('/copy-trades',
   TradingController.setupCopyTrading
 );
 
-router.put('/copy-trades/:id', 
+router.put(
+  '/copy-trades/:id',
   authenticateToken,
   [
     body('allocation').optional().isFloat({ min: 0, max: 100 }),
     body('maxSlippage').optional().isFloat({ min: 0, max: 10 }),
-    body('isActive').optional().isBoolean()
+    body('isActive').optional().isBoolean(),
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -96,6 +111,10 @@ router.put('/copy-trades/:id',
   TradingController.updateCopyTrading
 );
 
-router.delete('/copy-trades/:id', authenticateToken, TradingController.deleteCopyTrading);
+router.delete(
+  '/copy-trades/:id',
+  authenticateToken,
+  TradingController.deleteCopyTrading
+);
 
-export default router; 
+export default router;

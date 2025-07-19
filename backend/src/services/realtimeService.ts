@@ -4,7 +4,10 @@ import { Server as HttpsServer } from 'https';
 import { Web3 } from 'web3';
 import { ethers } from 'ethers';
 import { prisma } from '@/config/database';
-import { WalletMonitorService, TransactionData } from '@/services/walletMonitorService';
+import {
+  WalletMonitorService,
+  TransactionData,
+} from '@/services/walletMonitorService';
 import { logger } from '@/utils/logger';
 
 export class RealtimeService {
@@ -17,8 +20,8 @@ export class RealtimeService {
     this.io = new SocketIOServer(server, {
       cors: {
         origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
-        credentials: true
-      }
+        credentials: true,
+      },
     });
 
     const rpcUrl = process.env['RPC_URL'] || '';
@@ -30,7 +33,7 @@ export class RealtimeService {
   }
 
   private static setupSocketHandlers() {
-    this.io.on('connection', (socket) => {
+    this.io.on('connection', socket => {
       logger.info(`Client connected: ${socket.id}`);
 
       // Join user to their personal room
@@ -64,7 +67,7 @@ export class RealtimeService {
     logger.info('Starting real-time block monitoring...');
 
     // Monitor new blocks
-    this.provider.on('block', async (blockNumber) => {
+    this.provider.on('block', async blockNumber => {
       try {
         await this.processNewBlock(blockNumber);
       } catch (error) {
@@ -73,7 +76,7 @@ export class RealtimeService {
     });
 
     // Monitor pending transactions
-    this.provider.on('pending', async (txHash) => {
+    this.provider.on('pending', async txHash => {
       try {
         await this.processPendingTransaction(txHash);
       } catch (error) {
@@ -87,7 +90,9 @@ export class RealtimeService {
       const block = await this.provider.getBlock(blockNumber, true);
       if (!block || !block.transactions) return;
 
-      logger.info(`Processing block ${blockNumber} with ${block.transactions.length} transactions`);
+      logger.info(
+        `Processing block ${blockNumber} with ${block.transactions.length} transactions`
+      );
 
       for (const tx of block.transactions) {
         if (typeof tx === 'string') continue;
@@ -101,7 +106,7 @@ export class RealtimeService {
           value: tx.value.toString(),
           gasPrice: tx.gasPrice?.toString() || '0',
           gasUsed: '0', // Will be updated when transaction is mined
-          method: this.extractMethod(tx.data)
+          method: this.extractMethod(tx.data),
         };
 
         // Check if this transaction involves any monitored wallets
@@ -126,7 +131,7 @@ export class RealtimeService {
         value: tx.value.toString(),
         gasPrice: tx.gasPrice?.toString() || '0',
         gasUsed: '0',
-        method: this.extractMethod(tx.data)
+        method: this.extractMethod(tx.data),
       };
 
       // Check if this pending transaction involves monitored wallets
@@ -143,12 +148,12 @@ export class RealtimeService {
         where: {
           OR: [
             { address: transactionData.from.toLowerCase() },
-            { address: transactionData.to.toLowerCase() }
-          ]
+            { address: transactionData.to.toLowerCase() },
+          ],
         },
         include: {
-          user: true
-        }
+          user: true,
+        },
       });
 
       if (monitoredWallets.length === 0) return;
@@ -162,14 +167,18 @@ export class RealtimeService {
         this.io.to(`wallet-${wallet.address}`).emit('transaction', {
           wallet: wallet.address,
           transaction: transactionData,
-          type: await WalletMonitorService.analyzeTransactionType(transactionData)
+          type: await WalletMonitorService.analyzeTransactionType(
+            transactionData
+          ),
         });
 
         // Emit to user's personal room
         this.io.to(`user-${wallet.user.address}`).emit('wallet-activity', {
           wallet: wallet.address,
           transaction: transactionData,
-          type: await WalletMonitorService.analyzeTransactionType(transactionData)
+          type: await WalletMonitorService.analyzeTransactionType(
+            transactionData
+          ),
         });
       }
     } catch (error) {
@@ -179,10 +188,10 @@ export class RealtimeService {
 
   private static extractMethod(data: string): string | undefined {
     if (!data || data === '0x' || data.length < 10) return undefined;
-    
+
     // Extract method signature (first 4 bytes)
     const methodSignature = data.slice(0, 10);
-    
+
     // Common method signatures
     const methods: { [key: string]: string } = {
       '0xa9059cbb': 'transfer',
@@ -195,7 +204,7 @@ export class RealtimeService {
       '0x4a25d94a': 'swapETHForExactTokens',
       '0x8803dbee': 'swapTokensForExactETH',
       '0x1f00ca74': 'getAmountsOut',
-      '0xd06ca61f': 'getAmountsIn'
+      '0xd06ca61f': 'getAmountsIn',
     };
 
     return methods[methodSignature] || 'unknown';
@@ -211,10 +220,14 @@ export class RealtimeService {
   /**
    * Emit portfolio update to specific user
    */
-  static emitPortfolioUpdate(userAddress: string, walletAddress: string, portfolio: any) {
+  static emitPortfolioUpdate(
+    userAddress: string,
+    walletAddress: string,
+    portfolio: any
+  ) {
     this.io.to(`user-${userAddress.toLowerCase()}`).emit('portfolio-update', {
       wallet: walletAddress,
-      portfolio
+      portfolio,
     });
   }
 
@@ -222,10 +235,12 @@ export class RealtimeService {
    * Emit smart wallet detection
    */
   static emitSmartWalletDetection(walletAddress: string, label: any) {
-    this.io.to(`wallet-${walletAddress.toLowerCase()}`).emit('smart-wallet-detected', {
-      wallet: walletAddress,
-      label
-    });
+    this.io
+      .to(`wallet-${walletAddress.toLowerCase()}`)
+      .emit('smart-wallet-detected', {
+        wallet: walletAddress,
+        label,
+      });
   }
 
   /**
@@ -234,7 +249,7 @@ export class RealtimeService {
   static emitContractRiskAlert(contractAddress: string, analysis: any) {
     this.io.emit('contract-risk', {
       contract: contractAddress,
-      analysis
+      analysis,
     });
   }
 
@@ -251,4 +266,4 @@ export class RealtimeService {
   static getMonitoringStatus(): boolean {
     return this.isMonitoring;
   }
-} 
+}

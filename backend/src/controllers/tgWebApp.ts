@@ -22,15 +22,15 @@ export class TgWebAppController {
               approvals: true,
               trades: {
                 orderBy: { createdAt: 'desc' },
-                take: 50
-              }
-            }
+                take: 50,
+              },
+            },
           },
           sniperConfigs: {
             where: { isActive: true },
-            take: 1
-          }
-        }
+            take: 1,
+          },
+        },
       });
 
       if (!user) {
@@ -40,14 +40,14 @@ export class TgWebAppController {
             username: telegramUser?.username || null,
             firstName: telegramUser?.first_name || null,
             lastName: telegramUser?.last_name || null,
-            lastActive: new Date()
-          }
+            lastActive: new Date(),
+          },
         });
       }
 
       res.json({
         success: true,
-        data: user
+        data: user,
       });
     } catch (error) {
       console.error('Error getting user data for WebApp:', error);
@@ -60,7 +60,7 @@ export class TgWebAppController {
 
       res.status(500).json({
         success: false,
-        error: 'Failed to fetch user data'
+        error: 'Failed to fetch user data',
       });
     }
   }
@@ -80,13 +80,13 @@ export class TgWebAppController {
 
       // Check if proxy wallet already exists
       const existingWallet = await prisma.proxyWallet.findFirst({
-        where: { telegramUserId: telegramId }
+        where: { telegramUserId: telegramId },
       });
 
       if (existingWallet) {
         res.status(400).json({
           success: false,
-          error: 'Proxy wallet already exists'
+          error: 'Proxy wallet already exists',
         });
         return;
       }
@@ -95,7 +95,7 @@ export class TgWebAppController {
         where: { id: telegramId },
         data: {
           walletAddress: walletAddress,
-        }
+        },
       });
 
       // Create proxy wallet
@@ -107,7 +107,9 @@ export class TgWebAppController {
         gasPrice: '20',
       };
 
-      logger.info(`Creating proxy wallet for user ${telegramId} with address ${walletAddress}`);
+      logger.info(
+        `Creating proxy wallet for user ${telegramId} with address ${walletAddress}`
+      );
 
       const proxyAddress = await SniperBotService.createProxyWallet(
         walletAddress as Address,
@@ -124,12 +126,12 @@ export class TgWebAppController {
           maxSlippage: proxyConfig.maxSlippage,
           dailyTradeLimit: proxyConfig.dailyTradeLimit,
           telegramUserId: telegramId,
-        }
+        },
       });
 
       res.json({
         success: true,
-        data: { proxyWallet }
+        data: { proxyWallet },
       });
     } catch (error) {
       logger.error('Error deploying proxy wallet:', error);
@@ -142,7 +144,7 @@ export class TgWebAppController {
 
       res.status(500).json({
         success: false,
-        error: 'Failed to deploy proxy wallet'
+        error: 'Failed to deploy proxy wallet',
       });
     }
   }
@@ -157,18 +159,18 @@ export class TgWebAppController {
     try {
       await prisma.telegramUser.update({
         where: { id: telegramId },
-        data: { isMonitoring }
+        data: { isMonitoring },
       });
 
       res.json({
         success: true,
-        data: { isMonitoring }
+        data: { isMonitoring },
       });
     } catch (error) {
       logger.error('Error monitoring pool:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to monitor pool'
+        error: 'Failed to monitor pool',
       });
     }
   }
@@ -185,20 +187,20 @@ export class TgWebAppController {
           name: 'Uniswap V2',
           address: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
           type: 'DEX',
-          isActive: true
+          isActive: true,
         },
         {
           id: 2,
           name: 'PancakeSwap',
           address: '0x10ED43C718714eb63d5aA57B78B54704E256024E',
           type: 'DEX',
-          isActive: true
-        }
+          isActive: true,
+        },
       ];
 
       res.json({
         success: true,
-        data: { pools }
+        data: { pools },
       });
     } catch (error) {
       logger.error('Error getting pools:', error);
@@ -215,7 +217,7 @@ export class TgWebAppController {
 
       res.status(500).json({
         success: false,
-        error: 'Failed to fetch pools'
+        error: 'Failed to fetch pools',
       });
     }
   }
@@ -241,12 +243,12 @@ export class TgWebAppController {
         amount,
         isBuy,
         status: 'pending',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       res.json({
         success: true,
-        data: { trade }
+        data: { trade },
       });
     } catch (error) {
       logger.error('Error executing trade:', error);
@@ -263,7 +265,7 @@ export class TgWebAppController {
 
       res.status(500).json({
         success: false,
-        error: 'Failed to execute trade'
+        error: 'Failed to execute trade',
       });
     }
   }
@@ -285,29 +287,29 @@ export class TgWebAppController {
       let existingConfig = await prisma.sniperConfig.findFirst({
         where: {
           telegramUserId: telegramId,
-          isActive: true
-        }
+          isActive: true,
+        },
       });
 
       let config;
       if (existingConfig) {
         config = await prisma.sniperConfig.update({
           where: { id: existingConfig.id },
-          data: configData
+          data: configData,
         });
       } else {
         config = await prisma.sniperConfig.create({
           data: {
             ...configData,
             telegramUserId: telegramId,
-            isActive: true
-          }
+            isActive: true,
+          },
         });
       }
 
       res.json({
         success: true,
-        data: { config }
+        data: { config },
       });
     } catch (error) {
       logger.error('Error updating config:', error);
@@ -324,7 +326,7 @@ export class TgWebAppController {
 
       res.status(500).json({
         success: false,
-        error: 'Failed to update configuration'
+        error: 'Failed to update configuration',
       });
     }
   }

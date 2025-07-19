@@ -11,7 +11,7 @@ async function testPoolAPI() {
       limit: 10,
       page: 1,
       sortBy: 'market_cap',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
     });
 
     logger.info(`Successfully fetched ${result.pools.length} pools`);
@@ -33,21 +33,21 @@ async function testPoolAPI() {
     // Test getting pools by type
     const newPools = await PoolService.getPoolsByType('new', {
       timeframe: '1h',
-      limit: 5
+      limit: 5,
     });
 
     logger.info(`New pools found: ${newPools.pools.length}`);
 
     const burntPools = await PoolService.getPoolsByType('burnt', {
       timeframe: '1h',
-      limit: 5
+      limit: 5,
     });
 
     logger.info(`Burnt pools found: ${burntPools.pools.length}`);
 
     const dexscreenerPools = await PoolService.getPoolsByType('dexscreener', {
       timeframe: '1h',
-      limit: 5
+      limit: 5,
     });
 
     logger.info(`Dexscreener pools found: ${dexscreenerPools.pools.length}`);
@@ -59,4 +59,4 @@ async function testPoolAPI() {
 }
 
 // Run the test
-testPoolAPI(); 
+testPoolAPI();

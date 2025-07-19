@@ -1,8 +1,15 @@
 import api from '@/lib/axios'
 import { storageService } from '@/services/localstorage'
+import type { PoolRequest } from '@kunai/shared'
 
 // Authentication API calls
 export const authAPI = {
+  // Get current user
+  getCurrentUser: async () => {
+    const response = await api.get('/api/auth/me')
+    return response.data.user
+  },
+
   // Get nonce for SIWE authentication
   getNonce: async (): Promise<string> => {
     const response = await api.get('/api/auth/nonce')
@@ -32,10 +39,25 @@ export const authAPI = {
     }
   },
 
-  // Logout user
+  // Logout
   logout: async (): Promise<void> => {
     await api.post('/api/auth/logout')
-    storageService.removeItem('authToken')
+  },
+
+  // Send verification code to email
+  sendVerificationCode: async (email: string) => {
+    const response = await api.post('/api/auth/send-verification', { email })
+    return response.data
+  },
+
+  // Verify email code
+  verifyEmailCode: async (data: {
+    email: string
+    code: string
+    inviteCode?: string
+  }) => {
+    const response = await api.post('/api/auth/verify-email', data)
+    return response.data
   },
 }
 
@@ -163,6 +185,32 @@ export const contractAPI = {
 
 // Pools API calls
 export const poolsAPI = {
+  // New unified pools API with comprehensive filtering
+  getPools: async (params: PoolRequest = {}) => {
+    const response = await api.get('/api/pools', { params })
+    return response.data
+  },
+
+  // Get available filters
+  getAvailableFilters: async () => {
+    const response = await api.get('/api/pools/filters')
+    return response.data
+  },
+
+  // Get new pairs by rank (legacy)
+  getNewPairsByRank: async (params: {
+    timeframe?: '1m' | '5m' | '1h' | '6h' | '24h';
+    limit?: number;
+    page?: number;
+    chain?: string;
+    exchange?: string;
+    sortBy?: 'market_cap' | 'volume' | 'holder_count' | 'open_timestamp';
+    sortOrder?: 'asc' | 'desc';
+  } = {}) => {
+    const response = await api.get('/api/pools/rank', { params })
+    return response.data
+  },
+
   // Get all pools with unified parameters
   getAllPools: async (
     timeframe: '1m' | '5m' | '1h' | '6h' | '24h' = '1h',
@@ -204,4 +252,37 @@ export const poolsAPI = {
     })
     return response.data
   },
-} 
+}
+
+// Token API calls
+export const tokenAPI = {
+  // Get complete token information by chain and address
+  getTokenInfo: async (chain: string, address: string) => {
+    const response = await api.get(`/api/token/${chain}/${address}`)
+    return response.data
+  },
+
+  // Get token price only
+  getTokenPrice: async (chain: string, address: string) => {
+    const response = await api.get(`/api/token/${chain}/${address}/price`)
+    return response.data
+  },
+
+  // Get token market data (price, volume, market cap, FDV)
+  getTokenMarketData: async (chain: string, address: string) => {
+    const response = await api.get(`/api/token/${chain}/${address}/market`)
+    return response.data
+  },
+
+  // Check if token exists on the specified network
+  checkTokenExists: async (chain: string, address: string) => {
+    const response = await api.get(`/api/token/${chain}/${address}/exists`)
+    return response.data
+  },
+
+  // Get multiple tokens information in a single request
+  getMultipleTokens: async (tokens: Array<{network: string, address: string}>) => {
+    const response = await api.post('/api/token/batch', { tokens })
+    return response.data
+  },
+}

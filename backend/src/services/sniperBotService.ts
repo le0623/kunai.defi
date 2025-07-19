@@ -6,7 +6,7 @@ import { prisma } from '@/config/database';
 import cron from 'node-cron';
 import { Address } from 'viem';
 
-type Message = string
+type Message = string;
 
 export class SniperBotService {
   private isRunning = false;
@@ -25,7 +25,7 @@ export class SniperBotService {
       logger.info('✅ Database connected');
 
       // Initialize smart contract service
-      SmartContractService.initialize();  
+      SmartContractService.initialize();
       logger.info('✅ Smart contract service initialized');
 
       // // Start monitoring
@@ -50,26 +50,38 @@ export class SniperBotService {
   /**
    * Create proxy wallet for user
    */
-  public static async createProxyWallet(userAddress: Address, telegramUserId: string, config: any): Promise<string> {
+  public static async createProxyWallet(
+    userAddress: Address,
+    telegramUserId: string,
+    config: any
+  ): Promise<string> {
     try {
       // Check if user already has a proxy wallet
       const existingProxy = await prisma.proxyWallet.findUnique({
-        where: { userAddress: userAddress.toLowerCase(), telegramUserId: telegramUserId }
+        where: {
+          userAddress: userAddress.toLowerCase(),
+          telegramUserId: telegramUserId,
+        },
       });
 
       if (existingProxy) {
-        logger.warn(`User ${userAddress} already has a proxy wallet: ${existingProxy.proxyAddress}`);
+        logger.warn(
+          `User ${userAddress} already has a proxy wallet: ${existingProxy.proxyAddress}`
+        );
         return existingProxy.proxyAddress;
       }
 
       // Deploy proxy wallet
-      const proxyAddress = await SmartContractService.deployProxyWallet(userAddress, {
-        maxTradeAmount: config.maxTradeAmount || '0.1',
-        maxSlippage: config.maxSlippage || 500,
-        dailyTradeLimit: config.dailyTradeLimit || '1.0',
-        gasLimit: config.gasLimit || 2000000,
-        gasPrice: config.gasPrice || '20'
-      });
+      const proxyAddress = await SmartContractService.deployProxyWallet(
+        userAddress,
+        {
+          maxTradeAmount: config.maxTradeAmount || '0.1',
+          maxSlippage: config.maxSlippage || 500,
+          dailyTradeLimit: config.dailyTradeLimit || '1.0',
+          gasLimit: config.gasLimit || 2000000,
+          gasPrice: config.gasPrice || '20',
+        }
+      );
 
       logger.info(`✅ Proxy wallet deployed: ${proxyAddress}`);
 
@@ -82,11 +94,18 @@ export class SniperBotService {
   /**
    * Execute trade through proxy wallet
    */
-  public static async executeTrade(userAddress: Address, telegramUserId: string, tradeRequest: any): Promise<string> {
+  public static async executeTrade(
+    userAddress: Address,
+    telegramUserId: string,
+    tradeRequest: any
+  ): Promise<string> {
     try {
       // Get user's proxy wallet
       const proxyWallet = await prisma.proxyWallet.findUnique({
-        where: { userAddress: userAddress.toLowerCase(), telegramUserId: telegramUserId }
+        where: {
+          userAddress: userAddress.toLowerCase(),
+          telegramUserId: telegramUserId,
+        },
       });
 
       if (!proxyWallet) {
@@ -94,7 +113,11 @@ export class SniperBotService {
       }
 
       // Execute trade
-      const tradeId = await SmartContractService.executeTrade(userAddress, telegramUserId, tradeRequest);
+      const tradeId = await SmartContractService.executeTrade(
+        userAddress,
+        telegramUserId,
+        tradeRequest
+      );
 
       logger.info(`✅ Trade executed successfully: ${tradeId}`);
 
@@ -120,10 +143,19 @@ Check your wallet for the tokens!
   /**
    * Update token approval for user
    */
-  public static async updateTokenApproval(userAddress: Address, telegramUserId: string, tokenAddress: Address, amount: string): Promise<string> {
+  public static async updateTokenApproval(
+    userAddress: Address,
+    telegramUserId: string,
+    tokenAddress: Address,
+    amount: string
+  ): Promise<string> {
     try {
-
-      await SmartContractService.updateApproval(userAddress, telegramUserId, tokenAddress, amount);
+      await SmartContractService.updateApproval(
+        userAddress,
+        telegramUserId,
+        tokenAddress,
+        amount
+      );
 
       logger.info(`✅ Token approval updated successfully`);
 
@@ -148,22 +180,31 @@ You can now trade with this token!
   /**
    * Get user's proxy wallet status
    */
-  public static async getProxyWalletStatus(userAddress: Address, telegramUserId: string): Promise<any> {
+  public static async getProxyWalletStatus(
+    userAddress: Address,
+    telegramUserId: string
+  ): Promise<any> {
     try {
       const proxyWallet = await prisma.proxyWallet.findUnique({
-        where: { userAddress: userAddress.toLowerCase(), telegramUserId: telegramUserId },
+        where: {
+          userAddress: userAddress.toLowerCase(),
+          telegramUserId: telegramUserId,
+        },
         include: {
           approvals: true,
           trades: {
             orderBy: { createdAt: 'desc' },
-            take: 10
-          }
-        }
+            take: 10,
+          },
+        },
       });
 
       return proxyWallet;
     } catch (error) {
-      logger.error(`Error getting proxy wallet status for ${userAddress}:`, error);
+      logger.error(
+        `Error getting proxy wallet status for ${userAddress}:`,
+        error
+      );
       throw error;
     }
   }
@@ -196,7 +237,7 @@ You can now trade with this token!
         timeframe: '5m', // Check pools created in last 5 minutes
         limit: 10,
         sortBy: 'market_cap',
-        sortOrder: 'desc'
+        sortOrder: 'desc',
       });
 
       if (pools.pools.length === 0) {
@@ -211,9 +252,9 @@ You can now trade with this token!
         where: { isActive: true },
         include: {
           sniperConfigs: {
-            where: { isActive: true }
-          }
-        }
+            where: { isActive: true },
+          },
+        },
       });
 
       for (const pool of pools.pools) {
@@ -222,7 +263,7 @@ You can now trade with this token!
           if (user.sniperConfigs.length === 0) continue;
 
           const config = user.sniperConfigs[0]; // Use first active config
-          
+
           if (await this.poolMeetsCriteria(pool, config)) {
             await this.sendPoolAlert(user.id, pool, config);
           }
@@ -290,8 +331,10 @@ You can now trade with this token!
       }
 
       // Check whitelist (if not empty, must be in whitelist)
-      if (config.whitelistTokens.length > 0 && 
-          !config.whitelistTokens.includes(pool.base_token_info.address)) {
+      if (
+        config.whitelistTokens.length > 0 &&
+        !config.whitelistTokens.includes(pool.base_token_info.address)
+      ) {
         return false;
       }
 
@@ -305,7 +348,11 @@ You can now trade with this token!
   /**
    * Send pool alert to user
    */
-  private async sendPoolAlert(telegramId: string, pool: any, config: any): Promise<Message> {
+  private async sendPoolAlert(
+    telegramId: string,
+    pool: any,
+    config: any
+  ): Promise<Message> {
     try {
       const alertMessage = `
 🚨 New Pool Alert!
@@ -341,17 +388,17 @@ Use /config to adjust settings
           message: alertMessage,
           priority: 'high',
           telegramUserId: (await prisma.telegramUser.findUnique({
-            where: { id: telegramId }
+            where: { id: telegramId },
           }))!.id,
           metadata: {
             pool,
             config: {
               maxBuyAmount: config.maxBuyAmount,
               maxSlippage: config.maxSlippage,
-              autoSell: config.autoSell
-            }
-          }
-        }
+              autoSell: config.autoSell,
+            },
+          },
+        },
       });
 
       return alertMessage;
@@ -384,10 +431,10 @@ Use /config to adjust settings
         await prisma.telegramAlert.deleteMany({
           where: {
             createdAt: {
-              lt: oneWeekAgo
+              lt: oneWeekAgo,
             },
-            isRead: true
-          }
+            isRead: true,
+          },
         });
       } catch (error) {
         logger.error('Error cleaning up alerts:', error);
@@ -404,13 +451,13 @@ Use /config to adjust settings
         await prisma.telegramUser.updateMany({
           where: {
             lastActive: {
-              lt: thirtyMinutesAgo
+              lt: thirtyMinutesAgo,
             },
-            isActive: true
+            isActive: true,
           },
           data: {
-            isActive: false
-          }
+            isActive: false,
+          },
         });
       } catch (error) {
         logger.error('Error updating user activity:', error);
@@ -424,7 +471,7 @@ Use /config to adjust settings
   private setupGracefulShutdown(): void {
     const shutdown = async (signal: string) => {
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
-      
+
       this.isRunning = false;
 
       // Stop monitoring
@@ -432,7 +479,7 @@ Use /config to adjust settings
         clearInterval(this.monitoringInterval);
         logger.info('Monitoring stopped');
       }
-      
+
       // Disconnect database
       await disconnectDatabase();
       logger.info('Database disconnected');
@@ -454,7 +501,7 @@ Use /config to adjust settings
       lastPoolCheck: this.lastPoolCheck,
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      activeUsers: prisma.telegramUser.count({ where: { isActive: true } })
+      activeUsers: prisma.telegramUser.count({ where: { isActive: true } }),
     };
   }
 }

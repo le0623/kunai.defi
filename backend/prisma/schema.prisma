@@ -12,7 +12,10 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  address   String   @unique
+  email     String?  @unique
+  verificationCode String?
+  verificationCodeExpires DateTime?
+  inviteCode String? @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -21,8 +24,41 @@ model User {
   tradingBots      TradingBot[]
   copyTrades       CopyTrade[]
   alerts           Alert[]
+  inAppWallet      InAppWallet?
+
+  // Self-relation: Invite system
+  invitedByUserId         String? // FK field
+  invitedBy               User?   @relation("UserInvites", fields: [invitedByUserId], references: [id])
+  invitedUsers            User[]  @relation("UserInvites") // All users this user has invited
 
   @@map("users")
+}
+
+model InAppWallet {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  encryptedPrivateKey String // Base64 encoded encrypted private key
+  
+  // Wallet configuration
+  maxTradeAmount  String  @default("0.1") // Maximum trade amount in ETH
+  maxSlippage     Int     @default(200) // Maximum slippage in basis points (2%)
+  dailyTradeLimit String  @default("1.0") // Daily trade limit in ETH
+  dailyTradesUsed String  @default("0.0") // Daily trades used in ETH
+  lastTradeReset  DateTime @default(now())
+  
+  // Wallet status
+  isActive        Boolean @default(true)
+  isLocked        Boolean @default(false)
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("in_app_wallets")
 }
 
 model MonitoredWallet {
@@ -348,4 +384,67 @@ model ProxyTrade {
   proxyWallet ProxyWallet @relation(fields: [proxyAddress], references: [proxyAddress], onDelete: Cascade)
 
   @@map("proxy_trades")
+}
+
+model Chain {
+  id          String   @id @default(cuid())
+  name        String   @unique // Ethereum, BSC, Polygon, etc.
+  chainId     Int      @unique // Chain ID (1, 56, 137, etc.)
+  symbol      String   // ETH, BNB, MATIC, etc.
+  rpcUrl      String   // RPC endpoint
+  explorerUrl String   // Block explorer URL
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  dexs Dex[]
+  pools Pool[]
+
+  @@map("chains")
+}
+
+model Dex {
+  id          String   @id @default(cuid())
+  name        String   // Uniswap V2, PancakeSwap, etc.
+  version     String   // V2, V3, etc.
+  factoryAddress String // Factory contract address
+  routerAddress String  // Router contract address
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  chainId Int
+  chain   Chain  @relation(fields: [chainId], references: [chainId])
+  pools   Pool[]
+
+  @@unique([chainId, name, version])
+  @@map("dexs")
+}
+
+model Pool {
+  id              String   @id @default(cuid())
+  address         String   @unique // Pool contract address
+  token0Address   String   // Token 0 address
+  token1Address   String   // Token 1 address
+  token0Symbol    String?  // Token 0 symbol
+  token1Symbol    String?  // Token 1 symbol
+  token0Name      String?  // Token 0 name
+  token1Name      String?  // Token 1 name
+  token0Decimals  Int?
+  token1Decimals  Int?
+  
+  // Pool metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastTradedAt    DateTime?
+  
+  // Relations
+  chainId Int
+  chain   Chain @relation(fields: [chainId], references: [chainId])
+  dexId   String
+  dex     Dex   @relation(fields: [dexId], references: [id])
+
+  @@map("pools")
 }

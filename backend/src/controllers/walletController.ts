@@ -1,302 +1,242 @@
 import { Request, Response } from 'express';
-import { WalletMonitorService } from '@/services/walletMonitorService';
-import { prisma } from '@/config/database';
+import { WalletService } from '@/services/walletService';
 import { logger } from '@/utils/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
 
 export class WalletController {
   /**
-   * Get monitored wallets for authenticated user
+   * Get user's in-app wallet
    */
-  static async getMonitoredWallets(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getUserWallet(req: Request, res: Response): Promise<void> {
     try {
-      const wallets = await prisma.monitoredWallet.findMany({
-        where: { userId: req.user!.address },
-        include: {
-          portfolio: true,
-          transactions: {
-            orderBy: { timestamp: 'desc' },
-            take: 10
-          }
-        }
-      });
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const wallet = await WalletService.getUserWallet(userId);
+
+      if (!wallet) {
+        res.status(404).json({
+          success: false,
+          message: 'Wallet not found',
+        });
+        return;
+      }
 
       res.json({
         success: true,
-        wallets: wallets.map(wallet => ({
-          id: wallet.id,
+        wallet: {
           address: wallet.address,
-          label: wallet.label,
-          isSmart: wallet.isSmart,
-          riskScore: wallet.riskScore,
-          portfolio: wallet.portfolio,
-          recentTransactions: wallet.transactions
-        }))
+          config: wallet.config,
+          // Don't send private key to frontend
+        },
       });
     } catch (error) {
-      logger.error('Error getting monitored wallets:', error);
-      res.status(500).json({ success: false, message: 'Failed to get monitored wallets' });
+      logger.error('Error getting user wallet:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get wallet',
+      });
     }
   }
 
   /**
-   * Add wallet to monitoring list
+   * Get wallet balance
    */
-  static async addWalletToMonitoring(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getWalletBalance(req: Request, res: Response): Promise<void> {
     try {
-      const { address, label } = req.body;
-      
-      // Get user ID from address
-      const user = await prisma.user.findUnique({
-        where: { address: req.user!.address }
-      });
+      const { address } = req.params;
 
-      if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
+      if (!address) {
+        res.status(400).json({
+          success: false,
+          message: 'Wallet address is required',
+        });
         return;
       }
 
-      const monitoredWallet = await WalletMonitorService.addWalletToMonitoring(
-        user.id,
-        address,
-        label
+      const balance = await WalletService.getWalletBalance(address);
+
+      res.json({
+        success: true,
+        balance,
+      });
+    } catch (error) {
+      logger.error('Error getting wallet balance:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get balance',
+      });
+    }
+  }
+
+  /**
+   * Execute a trade
+   */
+  static async executeTrade(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { tokenIn, tokenOut, amountIn, minAmountOut } = req.body;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      if (!tokenIn || !tokenOut || !amountIn || !minAmountOut) {
+        res.status(400).json({
+          success: false,
+          message: 'Missing required trade parameters',
+        });
+        return;
+      }
+
+      const result = await WalletService.executeTrade(
+        userId,
+        tokenIn,
+        tokenOut,
+        amountIn,
+        minAmountOut
       );
 
-      res.json({
-        success: true,
-        message: 'Wallet added to monitoring',
-        wallet: monitoredWallet
-      });
+      if (result.success) {
+        res.json({
+          success: true,
+          txHash: result.txHash,
+          message: 'Trade executed successfully',
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.error || 'Trade failed',
+        });
+      }
     } catch (error) {
-      logger.error('Error adding wallet to monitoring:', error);
-      res.status(500).json({ success: false, message: 'Failed to add wallet to monitoring' });
+      logger.error('Error executing trade:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Trade execution failed',
+      });
     }
   }
 
   /**
-   * Remove wallet from monitoring
+   * Fund wallet (for testing/demo)
    */
-  static async removeWalletFromMonitoring(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async fundWallet(req: Request, res: Response): Promise<void> {
+    try {
+      const { address, amount } = req.body;
+
+      if (!address || !amount) {
+        res.status(400).json({
+          success: false,
+          message: 'Address and amount are required',
+        });
+        return;
+      }
+
+      const success = await WalletService.fundWallet(address, amount);
+
+      if (success) {
+        res.json({
+          success: true,
+          message: 'Wallet funded successfully',
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to fund wallet',
+        });
+      }
+    } catch (error) {
+      logger.error('Error funding wallet:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fund wallet',
+      });
+    }
+  }
+
+  /**
+   * Update wallet configuration
+   */
+  static async updateWalletConfig(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { maxTradeAmount, maxSlippage, dailyTradeLimit } = req.body;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const success = await WalletService.updateWalletConfig(userId, {
+        maxTradeAmount,
+        maxSlippage,
+        dailyTradeLimit,
+      });
+
+      if (success) {
+        res.json({
+          success: true,
+          message: 'Wallet configuration updated',
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to update configuration',
+        });
+      }
+    } catch (error) {
+      logger.error('Error updating wallet config:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update configuration',
+      });
+    }
+  }
+
+  /**
+   * Get transaction history
+   */
+  static async getTransactionHistory(
+    req: Request,
+    res: Response
+  ): Promise<void> {
     try {
       const { address } = req.params;
-      
-      // Get user ID from address
-      const user = await prisma.user.findUnique({
-        where: { address: req.user!.address }
-      });
 
-      if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
+      if (!address) {
+        res.status(400).json({
+          success: false,
+          message: 'Wallet address is required',
+        });
         return;
       }
 
-      const deletedWallet = await prisma.monitoredWallet.deleteMany({
-        where: {
-          userId: user.id,
-          address: address.toLowerCase()
-        }
-      });
-
-      if (deletedWallet.count === 0) {
-        res.status(404).json({ success: false, message: 'Wallet not found in monitoring list' });
-        return;
-      }
+      const transactions = await WalletService.getTransactionHistory(address);
 
       res.json({
         success: true,
-        message: 'Wallet removed from monitoring'
+        transactions,
       });
     } catch (error) {
-      logger.error('Error removing wallet from monitoring:', error);
-      res.status(500).json({ success: false, message: 'Failed to remove wallet from monitoring' });
+      logger.error('Error getting transaction history:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get transaction history',
+      });
     }
   }
-
-  /**
-   * Get wallet activity
-   */
-  static async getWalletActivity(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { address } = req.params;
-      
-      // Get user ID from address
-      const user = await prisma.user.findUnique({
-        where: { address: req.user!.address }
-      });
-
-      if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
-        return;
-      }
-
-      // Verify user is monitoring this wallet
-      const monitoredWallet = await prisma.monitoredWallet.findFirst({
-        where: {
-          userId: user.id,
-          address: address.toLowerCase()
-        }
-      });
-
-      if (!monitoredWallet) {
-        res.status(403).json({ success: false, message: 'Not monitoring this wallet' });
-        return;
-      }
-
-      const transactions = await prisma.transaction.findMany({
-        where: {
-          OR: [
-            { from: address.toLowerCase() },
-            { to: address.toLowerCase() }
-          ]
-        },
-        orderBy: { timestamp: 'desc' },
-        take: 50
-      });
-
-      res.json({
-        success: true,
-        activity: transactions
-      });
-    } catch (error) {
-      logger.error('Error getting wallet activity:', error);
-      res.status(500).json({ success: false, message: 'Failed to get wallet activity' });
-    }
-  }
-
-  /**
-   * Get wallet portfolio
-   */
-  static async getWalletPortfolio(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { address } = req.params;
-      
-      // Get user ID from address
-      const user = await prisma.user.findUnique({
-        where: { address: req.user!.address }
-      });
-
-      if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
-        return;
-      }
-
-      // Verify user is monitoring this wallet
-      const monitoredWallet = await prisma.monitoredWallet.findFirst({
-        where: {
-          userId: user.id,
-          address: address.toLowerCase()
-        }
-      });
-
-      if (!monitoredWallet) {
-        res.status(403).json({ success: false, message: 'Not monitoring this wallet' });
-        return;
-      }
-
-      const portfolio = await prisma.portfolio.findMany({
-        where: { monitoredWalletId: monitoredWallet.id },
-        orderBy: { updatedAt: 'desc' }
-      });
-
-      res.json({
-        success: true,
-        portfolio
-      });
-    } catch (error) {
-      logger.error('Error getting wallet portfolio:', error);
-      res.status(500).json({ success: false, message: 'Failed to get wallet portfolio' });
-    }
-  }
-
-  /**
-   * Get smart wallet labels
-   */
-  static async getSmartWalletLabel(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { address } = req.params;
-      
-      const label = await prisma.smartWalletLabel.findUnique({
-        where: { address: address.toLowerCase() }
-      });
-
-      res.json({
-        success: true,
-        label: label || null
-      });
-    } catch (error) {
-      logger.error('Error getting wallet label:', error);
-      res.status(500).json({ success: false, message: 'Failed to get wallet label' });
-    }
-  }
-
-  /**
-   * Get alerts for user
-   */
-  static async getUserAlerts(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      // Get user ID from address
-      const user = await prisma.user.findUnique({
-        where: { address: req.user!.address }
-      });
-
-      if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
-        return;
-      }
-
-      const alerts = await prisma.alert.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        take: 50
-      });
-
-      res.json({
-        success: true,
-        alerts
-      });
-    } catch (error) {
-      logger.error('Error getting alerts:', error);
-      res.status(500).json({ success: false, message: 'Failed to get alerts' });
-    }
-  }
-
-  /**
-   * Mark alert as read
-   */
-  static async markAlertAsRead(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      
-      // Get user ID from address
-      const user = await prisma.user.findUnique({
-        where: { address: req.user!.address }
-      });
-
-      if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
-        return;
-      }
-
-      const alert = await prisma.alert.updateMany({
-        where: {
-          id,
-          userId: user.id
-        },
-        data: { isRead: true }
-      });
-
-      if (alert.count === 0) {
-        res.status(404).json({ success: false, message: 'Alert not found' });
-        return;
-      }
-
-      res.json({
-        success: true,
-        message: 'Alert marked as read'
-      });
-    } catch (error) {
-      logger.error('Error marking alert as read:', error);
-      res.status(500).json({ success: false, message: 'Failed to mark alert as read' });
-    }
-  }
-} 
+}

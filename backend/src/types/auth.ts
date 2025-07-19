@@ -2,13 +2,13 @@ import { Request } from 'express';
 
 export type Payload = {
   address: string;
-}
+};
 
 export type Token = {
   success: boolean;
   user: Payload;
   token: string;
-}
+};
 
 export interface AuthRequest {
   message: string;
@@ -17,6 +17,6 @@ export interface AuthRequest {
 
 export interface AuthenticatedRequest extends Request {
   user?: {
-    address: string;
+    id: string;
   };
 }

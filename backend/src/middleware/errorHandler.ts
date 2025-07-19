@@ -27,9 +27,10 @@ export const errorHandler = (
   // Don't leak error details in production
   const errorResponse = {
     success: false,
-    message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : message,
+    message:
+      process.env.NODE_ENV === 'production' ? 'Internal Server Error' : message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   };
 
   res.status(statusCode).json(errorResponse);
-}; 
+};

@@ -34,7 +34,8 @@ export class WalletMonitorService {
   private static provider: ethers.JsonRpcProvider;
 
   static initialize() {
-    const rpcUrl = process.env['RPC_URL'] || 'https://mainnet.infura.io/v3/your-key';
+    const rpcUrl =
+      process.env['RPC_URL'] || 'https://mainnet.infura.io/v3/your-key';
     this.web3 = new Web3(rpcUrl);
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
   }
@@ -42,16 +43,20 @@ export class WalletMonitorService {
   /**
    * Add wallet to monitoring
    */
-  static async addWalletToMonitoring(userId: string, address: string, label?: string): Promise<any> {
+  static async addWalletToMonitoring(
+    userId: string,
+    address: string,
+    label?: string
+  ): Promise<any> {
     try {
       // Check if wallet is already being monitored by this user
       const existing = await prisma.monitoredWallet.findUnique({
         where: {
           userId_address: {
             userId,
-            address: address.toLowerCase()
-          }
-        }
+            address: address.toLowerCase(),
+          },
+        },
       });
 
       if (existing) {
@@ -68,8 +73,8 @@ export class WalletMonitorService {
           label,
           isSmart,
           riskScore,
-          userId
-        }
+          userId,
+        },
       });
 
       // Start monitoring this wallet
@@ -89,19 +94,19 @@ export class WalletMonitorService {
     try {
       // Get transaction history
       const transactions = await this.getTransactionHistory(address);
-      
+
       // Check for smart wallet indicators
       const indicators = {
-        highValueTransactions: transactions.filter(tx => 
-          parseFloat(ethers.formatEther(tx.value)) > 10
+        highValueTransactions: transactions.filter(
+          tx => parseFloat(ethers.formatEther(tx.value)) > 10
         ).length,
         frequentTransactions: transactions.length > 100,
         contractInteractions: transactions.filter(tx => tx.method).length,
-        tokenHoldings: await this.getTokenHoldings(address)
+        tokenHoldings: await this.getTokenHoldings(address),
       };
 
       // Determine if it's a smart wallet based on indicators
-      const isSmart = 
+      const isSmart =
         indicators.highValueTransactions > 5 ||
         indicators.frequentTransactions ||
         indicators.contractInteractions > 50 ||
@@ -128,20 +133,20 @@ export class WalletMonitorService {
 
       // Check for suspicious patterns
       const transactions = await this.getTransactionHistory(address);
-      
+
       // High frequency trading
       if (transactions.length > 1000) riskScore += 20;
-      
+
       // Large value transfers
-      const largeTransfers = transactions.filter(tx => 
-        parseFloat(ethers.formatEther(tx.value)) > 100
+      const largeTransfers = transactions.filter(
+        tx => parseFloat(ethers.formatEther(tx.value)) > 100
       ).length;
       if (largeTransfers > 10) riskScore += 30;
 
       // Contract interactions with known risky contracts
       const riskyContracts = await this.getRiskyContracts();
-      const riskyInteractions = transactions.filter(tx => 
-        tx.to && riskyContracts.includes(tx.to.toLowerCase())
+      const riskyInteractions = transactions.filter(
+        tx => tx.to && riskyContracts.includes(tx.to.toLowerCase())
       ).length;
       if (riskyInteractions > 0) riskScore += 40;
 
@@ -155,16 +160,18 @@ export class WalletMonitorService {
   /**
    * Track real-time transactions for monitored wallets
    */
-  static async trackTransaction(transactionData: TransactionData): Promise<void> {
+  static async trackTransaction(
+    transactionData: TransactionData
+  ): Promise<void> {
     try {
       // Check if transaction involves any monitored wallets
       const monitoredWallets = await prisma.monitoredWallet.findMany({
         where: {
           OR: [
             { address: transactionData.from.toLowerCase() },
-            { address: transactionData.to.toLowerCase() }
-          ]
-        }
+            { address: transactionData.to.toLowerCase() },
+          ],
+        },
       });
 
       if (monitoredWallets.length === 0) return;
@@ -185,13 +192,14 @@ export class WalletMonitorService {
           tokenSymbol: transactionData.tokenSymbol,
           tokenAmount: transactionData.tokenAmount,
           tokenDecimals: transactionData.tokenDecimals,
-          monitoredWalletId: monitoredWallets[0].id
-        }
+          monitoredWalletId: monitoredWallets[0].id,
+        },
       });
 
       // Analyze transaction type (buy/sell)
-      const transactionType = await this.analyzeTransactionType(transactionData);
-      
+      const transactionType =
+        await this.analyzeTransactionType(transactionData);
+
       // Check for contract risks
       if (transactionData.to) {
         await this.analyzeContractRisk(transactionData.to);
@@ -203,7 +211,9 @@ export class WalletMonitorService {
       // Update portfolio
       await this.updatePortfolio(transactionData);
 
-      logger.info(`Tracked transaction ${transactionData.hash} for monitored wallet`);
+      logger.info(
+        `Tracked transaction ${transactionData.hash} for monitored wallet`
+      );
     } catch (error) {
       logger.error('Error tracking transaction:', error);
     }
@@ -270,11 +280,13 @@ export class WalletMonitorService {
     try {
       // Check if contract is already analyzed
       const existing = await prisma.contractAnalysis.findUnique({
-        where: { contractAddress: contractAddress.toLowerCase() }
+        where: { contractAddress: contractAddress.toLowerCase() },
       });
 
-      if (existing && 
-          existing.lastAnalyzed > new Date(Date.now() - 24 * 60 * 60 * 1000)) {
+      if (
+        existing &&
+        existing.lastAnalyzed > new Date(Date.now() - 24 * 60 * 60 * 1000)
+      ) {
         return; // Already analyzed recently
       }
 
@@ -284,19 +296,23 @@ export class WalletMonitorService {
       if (existing) {
         await prisma.contractAnalysis.update({
           where: { contractAddress: contractAddress.toLowerCase() },
-          data: analysis
+          data: analysis,
         });
       } else {
         await prisma.contractAnalysis.create({
           data: {
             contractAddress: contractAddress.toLowerCase(),
-            ...analysis
-          }
+            ...analysis,
+          },
         });
       }
 
       // Create alert if contract is risky
-      if (analysis.isHoneypot || analysis.isRugPull || analysis.riskScore > 70) {
+      if (
+        analysis.isHoneypot ||
+        analysis.isRugPull ||
+        analysis.riskScore > 70
+      ) {
         await this.createContractAlert(contractAddress, analysis);
       }
     } catch (error) {
@@ -307,7 +323,9 @@ export class WalletMonitorService {
   /**
    * Perform detailed contract analysis
    */
-  static async performContractAnalysis(contractAddress: string): Promise<Partial<ContractAnalysis>> {
+  static async performContractAnalysis(
+    contractAddress: string
+  ): Promise<Partial<ContractAnalysis>> {
     try {
       // This would integrate with contract analysis services
       // For now, return basic analysis
@@ -319,7 +337,7 @@ export class WalletMonitorService {
         riskScore: 0,
         riskFactors: [],
         lastAnalyzed: new Date(),
-        analysisSource: 'kunai-analyzer'
+        analysisSource: 'kunai-analyzer',
       };
     } catch (error) {
       logger.error('Error performing contract analysis:', error);
@@ -327,7 +345,7 @@ export class WalletMonitorService {
         riskScore: 0,
         riskFactors: ['analysis_failed'],
         lastAnalyzed: new Date(),
-        analysisSource: 'kunai-analyzer'
+        analysisSource: 'kunai-analyzer',
       };
     }
   }
@@ -335,10 +353,13 @@ export class WalletMonitorService {
   /**
    * Create transaction alert
    */
-  static async createTransactionAlert(transaction: any, type: string): Promise<void> {
+  static async createTransactionAlert(
+    transaction: any,
+    type: string
+  ): Promise<void> {
     try {
       const monitoredWallet = await prisma.monitoredWallet.findFirst({
-        where: { id: transaction.monitoredWalletId }
+        where: { id: transaction.monitoredWalletId },
       });
 
       if (!monitoredWallet) return;
@@ -371,8 +392,8 @@ export class WalletMonitorService {
           message,
           metadata: { transactionHash: transaction.hash },
           userId: monitoredWallet.userId,
-          monitoredWalletId: monitoredWallet.id
-        }
+          monitoredWalletId: monitoredWallet.id,
+        },
       });
     } catch (error) {
       logger.error('Error creating transaction alert:', error);
@@ -382,7 +403,10 @@ export class WalletMonitorService {
   /**
    * Create contract risk alert
    */
-  static async createContractAlert(contractAddress: string, analysis: any): Promise<void> {
+  static async createContractAlert(
+    contractAddress: string,
+    analysis: any
+  ): Promise<void> {
     try {
       let message = '';
       let severity = 'medium';
@@ -404,10 +428,10 @@ export class WalletMonitorService {
           where: {
             transactions: {
               some: {
-                to: contractAddress.toLowerCase()
-              }
-            }
-          }
+                to: contractAddress.toLowerCase(),
+              },
+            },
+          },
         });
 
         for (const wallet of affectedWallets) {
@@ -418,8 +442,8 @@ export class WalletMonitorService {
               message,
               metadata: { contractAddress, analysis },
               userId: wallet.userId,
-              monitoredWalletId: wallet.id
-            }
+              monitoredWalletId: wallet.id,
+            },
           });
         }
       }
@@ -439,9 +463,9 @@ export class WalletMonitorService {
         where: {
           OR: [
             { address: tx.from.toLowerCase() },
-            { address: tx.to.toLowerCase() }
-          ]
-        }
+            { address: tx.to.toLowerCase() },
+          ],
+        },
       });
 
       if (!monitoredWallet) return;
@@ -457,12 +481,12 @@ export class WalletMonitorService {
         where: {
           monitoredWalletId_tokenAddress: {
             monitoredWalletId: monitoredWallet.id,
-            tokenAddress: tx.tokenAddress.toLowerCase()
-          }
+            tokenAddress: tx.tokenAddress.toLowerCase(),
+          },
         },
         update: {
           balance: balance.toString(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         create: {
           monitoredWalletId: monitoredWallet.id,
@@ -470,8 +494,8 @@ export class WalletMonitorService {
           tokenAddress: tx.tokenAddress.toLowerCase(),
           tokenSymbol: tx.tokenSymbol,
           balance: balance.toString(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
     } catch (error) {
       logger.error('Error updating portfolio:', error);
@@ -481,7 +505,9 @@ export class WalletMonitorService {
   /**
    * Get transaction history for an address
    */
-  static async getTransactionHistory(address: string): Promise<TransactionData[]> {
+  static async getTransactionHistory(
+    address: string
+  ): Promise<TransactionData[]> {
     try {
       // This would integrate with blockchain APIs
       // For now, return empty array
@@ -509,7 +535,10 @@ export class WalletMonitorService {
   /**
    * Get token balance for specific token
    */
-  static async getTokenBalance(walletAddress: string, tokenAddress: string): Promise<bigint> {
+  static async getTokenBalance(
+    walletAddress: string,
+    tokenAddress: string
+  ): Promise<bigint> {
     try {
       // This would integrate with token contract calls
       // For now, return 0
@@ -536,7 +565,10 @@ export class WalletMonitorService {
   /**
    * Update smart wallet label
    */
-  static async updateSmartWalletLabel(address: string, indicators: any): Promise<void> {
+  static async updateSmartWalletLabel(
+    address: string,
+    indicators: any
+  ): Promise<void> {
     try {
       let label = 'Smart Wallet';
       let category = 'unknown';
@@ -562,15 +594,15 @@ export class WalletMonitorService {
           label,
           category,
           confidence,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         create: {
           address: address.toLowerCase(),
           label,
           category,
           confidence,
-          source: 'kunai-analyzer'
-        }
+          source: 'kunai-analyzer',
+        },
       });
     } catch (error) {
       logger.error('Error updating smart wallet label:', error);
@@ -589,4 +621,4 @@ export class WalletMonitorService {
       logger.error('Error starting wallet monitoring:', error);
     }
   }
-} 
+}

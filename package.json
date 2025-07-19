@@ -1,0 +1,21 @@
+{
+  "name": "kunai-defi-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kunai DeFi Platform - Monorepo Workspace",
+  "workspaces": [
+    "backend",
+    "frontend", 
+    "contract",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel --recursive run dev",
+    "build": "pnpm --recursive run build",
+    "test": "pnpm --recursive run test",
+    "lint": "pnpm --recursive run lint"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  }
+} 

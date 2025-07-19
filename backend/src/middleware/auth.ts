@@ -15,12 +15,14 @@ export const authenticateToken = (
   }
 
   const decoded = AuthService.verifyToken(token);
-  if (!decoded) {
-    res.status(403).json({ success: false, message: 'Invalid or expired token' });
+  if (!decoded || (decoded.exp && decoded.exp < Date.now() / 1000)) {
+    res
+      .status(403)
+      .json({ success: false, message: 'Invalid or expired token' });
     return;
   }
 
-  req.user = decoded;
+  req.user = decoded.data;
   next();
 };
 
@@ -35,9 +37,9 @@ export const optionalAuth = (
   if (token) {
     const decoded = AuthService.verifyToken(token);
     if (decoded) {
-      req.user = decoded;
+      req.user = decoded.data;
     }
   }
 
   next();
-}; 
+};

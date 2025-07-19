@@ -13,14 +13,16 @@ import { logger } from '@/utils/logger';
 import { errorHandler } from '@/middleware/errorHandler';
 import { notFoundHandler } from '@/middleware/notFoundHandler';
 import { RealtimeService } from '@/services/realtimeService';
+import { EmailService } from '@/services/emailService';
 import { SniperBot } from '@/bot';
 
 // Import routes
 import authRoutes from '@/routes/auth';
 import walletRoutes from '@/routes/wallet';
 import tradingRoutes from '@/routes/trading';
-import poolRoutes from '@/routes/poolRoutes';
+import poolRoutes from '@/routes/pool';
 import telegramWebAppRoutes from '@/routes/tgWebApp';
+import tokenRoutes from '@/routes/token';
 
 // Load environment variables
 dotenv.config();
@@ -29,7 +31,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        address: string;
+        id: string;
       };
       telegramUser?: ({
         added_to_attachment_menu?: boolean | undefined;
@@ -75,7 +77,7 @@ app.use(helmet({
 // CORS configuration
 app.use(cors(
   {
-    origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -115,7 +117,7 @@ app.get('/health', (_req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env['NODE_ENV'] || 'development',
+    environment: process.env.NODE_ENV || 'development',
     realtimeClients: RealtimeService.getConnectedClientsCount(),
     realtimeMonitoring: RealtimeService.getMonitoringStatus()
   });
@@ -127,6 +129,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/trading', tradingRoutes);
 app.use('/api/pools', poolRoutes);
 app.use('/api/telegram-webapp', telegramWebAppRoutes);
+app.use('/api/token', tokenRoutes);
 
 // 404 handler
 app.use(notFoundHandler);
@@ -135,12 +138,20 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-const PORT = parseInt(process.env['PORT'] || '5000');
+const PORT = parseInt(process.env.PORT || '5000');
 
 const startServer = async () => {
   try {
     // Connect to database
     await connectDatabase();
+
+    // Initialize email service
+    if (EmailService.isConfigured()) {
+      EmailService.initialize();
+      logger.info('Email service initialized successfully');
+    } else {
+      logger.warn('Email service not configured - SMTP credentials missing');
+    }
 
     // Start server
     server.listen(PORT, () => {

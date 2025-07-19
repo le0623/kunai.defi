@@ -2,24 +2,37 @@ import { type ColumnDef } from "@tanstack/react-table"
 
 export type Token = {
   id: string
-  token: string
-  age: string
-  initial: string
-  mc: string
+  link: string
+  token: {
+    symbol: string
+    address: string
+    logo?: string
+  }
+  age: number
+  initial: number
+  mc: number
   holders: number
-  tx1m: number
-  vol1m: string
-  price: string
-  change1m: number
+  tx: {
+    buys: number
+    sells: number
+  }
+  vol: number
+  price: number
   change5m: number
   change1h: number
-  degenAudit: string
-  taxesBuy: number
-  taxesSell: number
-  dev: string
+  change6h: number
+  // degenAudit: {
+  //   isHoneypot: boolean
+  //   isOpenSource: boolean
+  // }
+  // taxes: {
+  //   buy: number
+  //   sell: number
+  // }
+  buy: string
 }
 
-export const columns: ColumnDef<Token>[] = [
+export const createColumns = (duration: string = '1h'): ColumnDef<Token>[] => [
   {
     accessorKey: "token",
     header: "Token",
@@ -41,20 +54,16 @@ export const columns: ColumnDef<Token>[] = [
     header: "Holders",
   },
   {
-    accessorKey: "tx1m",
-    header: "1m TXs",
+    accessorKey: "tx",
+    header: `${duration} TXs`,
   },
   {
-    accessorKey: "vol1m",
-    header: "1m Vol",
+    accessorKey: "vol",
+    header: `${duration} Vol`,
   },
   {
     accessorKey: "price",
     header: "Price",
-  },
-  {
-    accessorKey: "change1m",
-    header: "1m%",
   },
   {
     accessorKey: "change5m",
@@ -65,11 +74,22 @@ export const columns: ColumnDef<Token>[] = [
     header: "1h%",
   },
   {
-    accessorKey: "degenAudit",
-    header: "Degen Audit",
+    accessorKey: "change6h",
+    header: "6h%",
   },
+  // {
+  //   accessorKey: "degenAudit",
+  //   header: "Degen Audit",
+  // },
+  // {
+  //   accessorKey: "taxes",
+  //   header: "Taxes B/S",
+  // },
   {
-    accessorKey: "taxes",
-    header: "Taxes B/S",
+    accessorKey: "buy",
+    header: "",
   },
 ]
+
+// Default columns for backward compatibility
+export const columns = createColumns()
