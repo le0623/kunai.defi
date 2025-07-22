@@ -1,26 +1,17 @@
-import { useEffect, useState, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useState, useRef, useMemo } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   ArrowLeft,
-  ExternalLink,
-  TrendingUp,
-  Users,
-  Activity,
-  Target,
-  Bell,
-  Zap,
-  Code,
+  StarIcon,
 } from 'lucide-react'
 import CopyIcon from '@/components/common/copy'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { TradingZone } from '@/components/pages/TokenDetail/trading-zone'
-import { formatPrice } from '@/lib/utils'
 import { tokenAPI } from '@/services/api'
-import type { TokenInfo } from '@kunai/shared'
+import { formatAddress, type TokenInfo } from '@kunai/shared'
+import EtherscanIcon from '@/assets/icons/etherscan.svg'
+import TokenAnalysis from '@/components/pages/TokenDetail/analysis'
 
 // TradingView widget type
 declare global {
@@ -69,13 +60,21 @@ const TokenDetail = () => {
     }
     
     tokenAPI.getTokenInfo(chain, tokenAddress).then((data) => {
-      setToken(data)
+      if (data.success) {
+        setToken(data.data)
+      } else {
+        setError(data.message)
+      }
     }).catch((err) => {
       setError('Failed to load token information')
     }).finally(() => {
       setLoading(false)
     })
   }, [chain, tokenAddress])
+
+  const tokenInfo = useMemo(() => {
+    return token?.tokenInfo
+  }, [token])
 
   // Load TradingView script
   useEffect(() => {
@@ -148,21 +147,7 @@ const TokenDetail = () => {
   }
 
   const getTradingViewSymbol = () => {
-    // Map chain to TradingView symbol format
-    const chainMap: { [key: string]: string } = {
-      'eth': 'ETH',
-      'bsc': 'BSC',
-      'polygon': 'MATIC',
-      'arbitrum': 'ARB',
-      'optimism': 'OP',
-      'avalanche': 'AVAX'
-    }
-
-    const chainSymbol = chainMap[chain?.toLowerCase() || 'eth'] || 'ETH'
-
-    // For now, use a generic token symbol
-    // In a real implementation, you'd map the token address to its actual symbol
-    return `${chainSymbol}USD`
+    return `${tokenInfo?.symbol}USD`
   }
 
   if (loading) {
@@ -193,34 +178,34 @@ const TokenDetail = () => {
       {/* Left Side - Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Top Section - Token Details */}
-        <div className="h-20 border-b bg-card p-4">
+        <div className="h-20 border-b bg-card p-2">
           <div className="flex items-center justify-between h-full">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                {token.image_url ? (
-                  <img src={token.image_url} alt={token.symbol} className="w-8 h-8 rounded-full" />
-                ) : (
-                  <div className="w-8 h-8 bg-black border border-gray-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium">{token.symbol?.slice(0, 2)}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <StarIcon className="w-4 h-4 text-muted-foreground hover:text-white cursor-pointer" />
+                  {tokenInfo?.image_url ? (
+                    <img src={tokenInfo.image_url} alt={tokenInfo.symbol} className="w-12 h-12 rounded-full" />
+                  ) : (
+                    <div className="w-12 h-12 bg-black border border-gray-500 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium">{tokenInfo?.symbol?.slice(0, 2)}</span>
+                    </div>
+                  )}
+                </div>
                 <div>
-                  <h2 className="font-semibold">{token.name}</h2>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs bg-muted px-2 py-1 rounded">
-                      {token.address?.slice(0, 6)}...{token.address?.slice(-4)}
-                    </code>
-                    <CopyIcon clipboardText={token.address} />
-                    <Badge variant="outline" className="capitalize text-xs">{chain}</Badge>
+                  <div className="flex items-end gap-1">
+                    <h2 className="font-semibold">{tokenInfo?.symbol}</h2>
+                    <p className="text-sm text-muted-foreground">{tokenInfo?.name}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <p className="text-sm text-muted-foreground">{formatAddress(tokenInfo?.address || '')}</p>
+                    <CopyIcon clipboardText={tokenInfo?.address || ''} />
+                    <Link to={`https://etherscan.io/address/${tokenInfo?.address}`} target="_blank" className="cursor-pointer">
+                      <img src={EtherscanIcon} alt="Etherscan" className="w-4 h-4 text-muted-foreground hover:text-white" />
+                    </Link>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Explorer
-              </Button>
             </div>
           </div>
         </div>
@@ -240,163 +225,7 @@ const TokenDetail = () => {
 
           {/* Details Section */}
           <ResizablePanel defaultSize={40} minSize={20}>
-            <div className="h-full p-4">
-              <Tabs defaultValue="activity" className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-8">
-                  <TabsTrigger value="activity" className="flex items-center gap-1">
-                    <Activity className="w-3 h-3" />
-                    Activity
-                  </TabsTrigger>
-                  <TabsTrigger value="positions" className="flex items-center gap-1">
-                    <Target className="w-3 h-3" />
-                    Positions
-                  </TabsTrigger>
-                  <TabsTrigger value="holders" className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    Holders
-                  </TabsTrigger>
-                  <TabsTrigger value="traders" className="flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    Traders
-                  </TabsTrigger>
-                  <TabsTrigger value="tracking" className="flex items-center gap-1">
-                    <Bell className="w-3 h-3" />
-                    Tracking
-                  </TabsTrigger>
-                  <TabsTrigger value="signal" className="flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    Signal
-                  </TabsTrigger>
-                  <TabsTrigger value="degen-calls" className="flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    Degen Calls
-                  </TabsTrigger>
-                  <TabsTrigger value="dev-token" className="flex items-center gap-1">
-                    <Code className="w-3 h-3" />
-                    Dev Token
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="activity" className="flex-1 mt-4 overflow-y-auto">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Recent Activity</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {/* Mock activity data */}
-                        {Array.from({ length: 10 }, (_, i) => ({
-                          id: `tx-${i}`,
-                          type: i % 2 === 0 ? 'buy' : 'sell' as const,
-                          amount: Math.random() * 1000,
-                          price: token.price_usd ? parseFloat(token.price_usd) * (1 + (Math.random() - 0.5) * 0.1) : 0,
-                          timestamp: new Date(Date.now() - i * 60000).toISOString(),
-                          wallet: `0x${Math.random().toString(16).slice(2, 10)}...`,
-                          txHash: `0x${Math.random().toString(16).slice(2, 42)}`
-                        })).map((activity) => (
-                          <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${activity.type === 'buy' ? 'bg-green-500' : 'bg-red-500'}`} />
-                              <div>
-                                <p className="font-medium">
-                                  {activity.type === 'buy' ? 'Buy' : 'Sell'} {activity.amount.toFixed(2)} {token.symbol}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {formatPrice(activity.price)} • {activity.wallet}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium">{formatPrice(activity.amount * activity.price)}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(activity.timestamp).toLocaleTimeString()}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="positions" className="flex-1 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Positions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Position tracking coming soon...</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="holders" className="flex-1 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Top Holders</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Holder information coming soon...</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="traders" className="flex-1 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Top Traders</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Trader analytics coming soon...</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="tracking" className="flex-1 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Tracking</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Tracking features coming soon...</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="signal" className="flex-1 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Signals</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Trading signals coming soon...</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="degen-calls" className="flex-1 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Degen Calls</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Degen calls coming soon...</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="dev-token" className="flex-1 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Dev Token</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Developer token information coming soon...</p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
+            {token && <TokenAnalysis token={token} />}
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

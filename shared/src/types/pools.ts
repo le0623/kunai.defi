@@ -3,21 +3,26 @@
 import { PaginatedResponse, PaginationParams } from "."
 
 export interface TokenInfo {
-  address: string
-  symbol: string
-  name: string
-  decimals: number
-  image_url?: string
-  coingecko_coin_id?: string
-  total_supply?: string
-  normalized_total_supply?: string
-  price_usd?: string
-  fdv_usd?: string
-  total_reserve_in_usd?: string
-  volume_usd?: {
-    h24: string
-  }
-  market_cap_usd?: string
+  tokenInfo: {
+    address: string
+    symbol: string
+    name: string
+    decimals: number
+    image_url?: string
+    coingecko_coin_id?: string
+    total_supply?: string
+    normalized_total_supply?: string
+    price_usd?: string
+    fdv_usd?: string
+    total_reserve_in_usd?: string
+    volume_usd?: {
+      h24: string
+    }
+    market_cap_usd?: string
+  },
+  tokenSecurity: any
+  chain: string
+  lastUpdated: Date
 }
 
 export interface TokenLinks {

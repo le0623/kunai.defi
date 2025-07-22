@@ -15,6 +15,7 @@ import ProxyWalletCreate from '@/components/telegram/ProxyWalletCreate'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@/contexts/auth-context'
 import AuthDialog from '@/components/common/auth-dialog'
+import PresetsSettingsModal from '@/components/modals/PresetsSettingsModal'
 
 const queryClient = new QueryClient()
 
@@ -45,6 +46,7 @@ function App() {
               </Routes>
             </Router>
             <AuthDialog />
+            <PresetsSettingsModal />
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>

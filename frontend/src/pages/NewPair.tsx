@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { CloudLightningIcon, RefreshCw } from 'lucide-react'
+import { CloudLightningIcon, RefreshCw, SearchIcon, StarIcon } from 'lucide-react'
 import { DataTable } from '@/components/table/data-table'
 import { createColumns, type Token } from '@/components/table/columns'
 import { poolsAPI } from '@/services/api'
 import type { Pool } from '@kunai/shared'
 import CopyIcon from '@/components/common/copy'
-import { useNavigate } from 'react-router-dom'
-import { formatAge, formatNumber, getValueColor, formatPrice } from '@/lib/utils'
+import { Link, useNavigate } from 'react-router-dom'
+import { cn, formatAge, formatNumber, getValueColor, formatPrice } from '@/lib/utils'
+import Presets from '@/components/common/presets'
 
 // Transform pool data to Token format
 const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
@@ -186,6 +187,10 @@ const NewPair = () => {
       case 'token':
         return (
           <div className="flex items-center gap-2">
+            <StarIcon
+              className="w-4 h-4 text-muted-foreground hover:text-white"
+              onClick={(e) => e.stopPropagation()}
+            />
             {row.token.logo ?
               <img src={row.token.logo} alt={row.token.symbol} className="w-16 h-16 rounded-full" /> :
               <div className="w-16 h-16 bg-black border border-gray-500 rounded-full flex items-center justify-center">
@@ -193,7 +198,12 @@ const NewPair = () => {
               </div>
             }
             <div className="flex flex-col">
-              <span className="text-sm font-medium">{row.token.symbol}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium">{row.token.symbol}</span>
+                <Link to={`https://x.com/search?q=($${row.token.symbol} OR ${row.token.address})&src=typed_query&f=live`} target="_blank" className="cursor-pointer">
+                  <SearchIcon className="w-3 h-3 text-muted-foreground hover:text-white"/>
+                </Link>
+              </div>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-muted-foreground">{row.token.address.slice(0, 6)}...{row.token.address.slice(-4)}</span>
                 <div onClick={(e) => e.stopPropagation()}>
@@ -315,7 +325,7 @@ const NewPair = () => {
       case 'buy':
         return (
           <div onClick={(e) => e.stopPropagation()}>
-            <Button className="bg-gray-500 text-white hover:bg-primary">
+            <Button className="bg-gray-500 text-white hover:bg-primary cursor-pointer">
               <CloudLightningIcon className="w-4 h-4" />
               Buy
             </Button>
@@ -328,22 +338,20 @@ const NewPair = () => {
   }
 
   return (
-    <div>
-      <div className="flex gap-4 items-center justify-between p-4">
+    <div className="h-full flex flex-col">
+      <div className="flex gap-4 items-center justify-between p-4 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold">New Pairs</span>
           {/* Duration Button Group */}
-          <div className="flex items-center gap-1 bg-muted rounded-md">
+          <div className="flex items-center gap-1 bg-accent rounded-xs p-0.5">
             {durations.map((duration) => (
-              <Button
+              <div
                 key={duration.value}
-                variant={selectedDuration === duration.value ? "default" : "ghost"}
-                size="sm"
                 onClick={() => handleDurationChange(duration.value)}
-                className="h-8 px-3 text-xs font-medium"
+                className={cn("px-2 py-1 text-xs font-medium cursor-pointer rounded-xs", selectedDuration === duration.value && "bg-white/10")}
               >
                 {duration.label}
-              </Button>
+              </div>
             ))}
           </div>
 
@@ -354,18 +362,19 @@ const NewPair = () => {
             {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
           </div>
         </div>
+        <Presets />
       </div>
 
       {/* Error message */}
       {error && (
-        <div className="px-4 mb-4">
+        <div className="px-4 mb-4 flex-shrink-0">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {error}
           </div>
         </div>
       )}
 
-      <div className="px-2">
+      <div className="flex-1 px-2 pb-2 overflow-hidden">
         <DataTable
           columns={columns}
           data={tokens}

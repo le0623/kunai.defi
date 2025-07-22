@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 const Button = ({ children, className, ...props }: React.ComponentProps<typeof ButtonUI>) => {
   return (
     <ButtonUI {...props}
-      className={cn("cursor-pointer bg-secondary hover:bg-secondary/70 transition-colors duration-200 text-white", className)}>
+      className={cn("cursor-pointer bg-secondary hover:bg-secondary/70 text-white", className)}>
       {children}
     </ButtonUI>
   )

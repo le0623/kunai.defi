@@ -42,62 +42,64 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <Table>
-      <TableHeader>
-        {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id}>
-            {headerGroup.headers.map((header) => {
-              const headerContent = header.isPlaceholder
-                ? null
-                : flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )
-
-              return (
-                <TableHead key={header.id}>
-                  {renderHeader && typeof headerContent === 'string'
-                    ? renderHeader(headerContent, header.id)
-                    : headerContent}
-                </TableHead>
-              )
-            })}
-          </TableRow>
-        ))}
-      </TableHeader>
-      <TableBody>
-        {table.getRowModel().rows?.length ? (
-          table.getRowModel().rows.map((row) => (
-            <TableRow
-              key={row.id}
-              data-state={row.getIsSelected() && "selected"}
-              className={onRowClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
-              onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-            >
-              {row.getVisibleCells().map((cell) => {
-                const cellValue = flexRender(
-                  cell.column.columnDef.cell,
-                  cell.getContext()
-                )
+    <div className="h-full flex flex-col">
+      <Table className="flex-1">
+        <TableHeader className="sticky top-0 z-10 bg-background border-b">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const headerContent = header.isPlaceholder
+                  ? null
+                  : flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )
 
                 return (
-                  <TableCell key={cell.id}>
-                    {renderCell
-                      ? renderCell(cell.getValue(), row.original, cell.column.id)
-                      : cellValue}
-                  </TableCell>
+                  <TableHead key={header.id}>
+                    {renderHeader && typeof headerContent === 'string'
+                      ? renderHeader(headerContent, header.id)
+                      : headerContent}
+                  </TableHead>
                 )
               })}
             </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell colSpan={columns.length} className="h-24 text-center">
-              No results.
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          ))}
+        </TableHeader>
+        <TableBody className="overflow-y-auto">
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && "selected"}
+                className={onRowClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
+                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+              >
+                {row.getVisibleCells().map((cell) => {
+                  const cellValue = flexRender(
+                    cell.column.columnDef.cell,
+                    cell.getContext()
+                  )
+
+                  return (
+                    <TableCell key={cell.id}>
+                      {renderCell
+                        ? renderCell(cell.getValue(), row.original, cell.column.id)
+                        : cellValue}
+                    </TableCell>
+                  )
+                })}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                No results.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

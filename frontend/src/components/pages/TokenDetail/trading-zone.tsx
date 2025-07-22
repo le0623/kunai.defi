@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { TrendingUp, TrendingDown } from "lucide-react"
 import type { TokenInfo } from "@kunai/shared"
 import { formatPrice, formatNumber } from "@/lib/utils"
+import { Trade } from "./trade"
 
 export const TradingZone = ({ token }: { token: TokenInfo }) => {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
@@ -20,19 +21,21 @@ export const TradingZone = ({ token }: { token: TokenInfo }) => {
   }
 
   return (
-    <div className={`relative border-l bg-background transition-all duration-300 ${leftPanelCollapsed ? 'w-0' : 'w-96'}`}>
+    <div className={`relative border-l bg-background ${leftPanelCollapsed ? 'w-0' : 'w-96'}`}>
       <Button
         variant="ghost"
         size="sm"
-        className="absolute -left-3 top-4 z-10 h-6 w-6 rounded-full border bg-background p-0"
+        className="absolute -left-3 top-4 z-10 h-6 w-6 rounded-full border bg-background p-0 cursor-pointer"
         onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
       >
         {leftPanelCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
       </Button>
 
+
       {!leftPanelCollapsed && (
         <div className="h-full overflow-y-auto p-4">
           <div className="space-y-6">
+            <Trade />
           </div>
         </div>
       )}
