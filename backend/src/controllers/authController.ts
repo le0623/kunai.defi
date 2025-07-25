@@ -156,6 +156,37 @@ export class AuthController {
   }
 
   /**
+   * Verify telegram login
+   */
+  static async verifyTelegramLogin(req: Request, res: Response): Promise<void> {
+    
+    try {
+      const { user_id, code, refCode } = req.body;
+
+      const result = await AuthService.verifyTelegramLogin(user_id, code, refCode);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          token: result.token,
+          message: result.message,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+        });
+      }
+    } catch (error) {
+      logger.error('Error verifying email code:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Verification failed',
+      });
+    }
+  }
+
+  /**
    * Get current user information
    */
   static async getCurrentUser(req: Request, res: Response): Promise<void> {

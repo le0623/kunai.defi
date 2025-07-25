@@ -13,9 +13,11 @@ import NewPair from '@/pages/NewPair'
 import TokenDetail from '@/pages/TokenDetail'
 import ProxyWalletCreate from '@/components/telegram/ProxyWalletCreate'
 import { ThemeProvider } from '@/components/theme-provider'
-import { AuthProvider } from '@/contexts/auth-context'
 import AuthDialog from '@/components/common/auth-dialog'
 import PresetsSettingsModal from '@/components/modals/PresetsSettingsModal'
+import DepositSheet from '@/components/common/deposit-sheet'
+import { Toaster } from '@/components/ui/sonner'
+import TelegramAuth from '@/pages/TelegramAuth'
 
 const queryClient = new QueryClient()
 
@@ -24,30 +26,31 @@ function App() {
     <Web3Provider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <AuthProvider>
-            <Router>
-              <Routes>
-                {/* Telegram WebApp Routes */}
-                <Route path="/webapp" element={<WebAppLayout><Outlet /></WebAppLayout>}>
-                  <Route index element={<TelegramWebApp />} />
-                  <Route path="deploy-wallet" element={<ProxyWalletCreate />} />
-                </Route>
+          <Router>
+            <Routes>
+              {/* Telegram WebApp Routes */}
+              <Route path="/webapp" element={<WebAppLayout><Outlet /></WebAppLayout>}>
+                <Route index element={<TelegramWebApp />} />
+                <Route path="deploy-wallet" element={<ProxyWalletCreate />} />
+              </Route>
 
-                {/* Main App Routes */}
-                <Route path="/" element={<Layout><Outlet /></Layout>}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="new-pair" element={<NewPair />} />
-                  <Route path="wallet-monitor" element={<WalletMonitor />} />
-                  <Route path="trading-bot" element={<TradingBot />} />
-                  <Route path="copy-trade" element={<CopyTrade />} />
-                  <Route path="terminal" element={<Terminal />} />
-                  <Route path=":chain/token/:tokenAddress" element={<TokenDetail />} />
-                </Route>
-              </Routes>
-            </Router>
-            <AuthDialog />
-            <PresetsSettingsModal />
-          </AuthProvider>
+              {/* Main App Routes */}
+              <Route path="/" element={<Layout><Outlet /></Layout>}>
+                <Route index element={<Dashboard />} />
+                <Route path="new-pair" element={<NewPair />} />
+                <Route path="wallet-monitor" element={<WalletMonitor />} />
+                <Route path="trading-bot" element={<TradingBot />} />
+                <Route path="copy-trade" element={<CopyTrade />} />
+                <Route path="terminal" element={<Terminal />} />
+                <Route path=":chain/token/:tokenAddress" element={<TokenDetail />} />
+                <Route path="tgauth" element={<TelegramAuth />} />
+              </Route>
+            </Routes>
+          </Router>
+          <AuthDialog />
+          <PresetsSettingsModal />
+          <DepositSheet />
+          <Toaster richColors position="top-center" />
         </ThemeProvider>
       </QueryClientProvider>
     </Web3Provider>

@@ -3,28 +3,24 @@ import { cn } from '@/lib/utils'
 import logo from '@/assets/logo.svg'
 import { SearchBox } from './common/search-box'
 import Button from './common/button'
-import { useAuth } from '@/contexts/auth-context'
+import { useAuth, useAppDispatch } from '@/store/hooks'
 import AccountMenu from './account-menu'
 import { ChainSelector } from './chain-selector'
-import { useState } from 'react'
+import { setIsDepositSheetOpen } from '@/store/slices/uiSlice'
 
 const navItems = [
   // { path: '/', label: 'Dashboard' },
   { path: '/new-pair', label: 'New Pair' },
+  { path: '/', label: 'Trending' },
   { path: '/wallet-monitor', label: 'Wallet Monitor' },
   // { path: '/trading-bot', label: 'Trading Bot' },
   { path: '/copy-trade', label: 'Copy Trade' },
-  // { path: '/terminal', label: 'Terminal' },
 ]
 
 const Header = () => {
   const location = useLocation()
   const { showAuthDlg, isAuthenticated } = useAuth()
-  const [selectedChain, setSelectedChain] = useState('ethereum')
-
-  const handleChainChange = (chainId: string) => {
-    setSelectedChain(chainId)
-  }
+  const dispatch = useAppDispatch()
 
   return (
     <header className="h-16 border-b border-border bg-background px-6 flex items-center justify-between">
@@ -63,13 +59,14 @@ const Header = () => {
       <div className="flex items-center gap-3">
         <ChainSelector 
           className="h-9 border-none bg-none focus:ring-0 focus:ring-offset-0"
-          selectedChain={selectedChain}
-          onChainChange={handleChainChange}
         />
-        
+
         {/* Connect Wallet */}
         {isAuthenticated ? (
-          <AccountMenu />
+          <>
+            <Button onClick={() => dispatch(setIsDepositSheetOpen(true))}>Deposit</Button>
+            <AccountMenu />
+          </>
         ) : (
           <Button 
             onClick={() => showAuthDlg(true)}

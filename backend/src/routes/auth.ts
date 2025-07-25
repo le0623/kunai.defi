@@ -78,6 +78,20 @@ router.post(
   AuthController.verifyEmailCode
 );
 
+// Verify telegram login
+router.post(
+  '/verify-telegram-login',
+  [
+    body('user_id').isString().notEmpty().withMessage('User ID is required'),
+    body('code').isString().notEmpty().withMessage('Code is required'),
+    body('refCode')
+      .optional()
+      .isString()
+      .withMessage('Referral code must be a string'),
+  ],
+  AuthController.verifyTelegramLogin
+);
+
 // Get current user information
 router.get('/me', authenticateToken, AuthController.getCurrentUser);
 

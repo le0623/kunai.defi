@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger } from '@/utils/logger';
+import type { GeckoTerminalTrendingPool } from '@kunai/shared';
 
 // Types based on GeckoTerminal API response
 export interface GeckoTerminalTokenAttributes {
@@ -270,6 +271,22 @@ class GeckoTerminalService {
       'solana',
     ];
     return validNetworks.includes(network.toLowerCase());
+  }
+
+  /**
+   * Get trending pools
+   * @returns Promise<any>
+   */
+  async getTrendingPools(network: string): Promise<GeckoTerminalTrendingPool[]> {
+    try {
+      const url = `${this.BASE_URL}/networks/${network}/trending_pools`;
+      const response = await axios.get(url);
+      const { data }: { data: GeckoTerminalTrendingPool[] } = response.data;
+      return data;
+    } catch (error) {
+      logger.error(`Error fetching trending pools: ${error}`);
+      return [];
+    }
   }
 }
 

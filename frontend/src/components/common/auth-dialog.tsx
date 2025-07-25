@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/store/hooks"
 import {
   useConnectModal,
 } from '@rainbow-me/rainbowkit';
@@ -280,9 +280,15 @@ const AuthDialog: React.FC = () => {
 
           {/* Telegram Login */}
           <div className="flex justify-center">
-            <div className="flex items-center gap-1 cursor-pointer">
+            <a
+              href={`https://t.me/KunaiSniper_bot?start=login${formData.inviteCode ? `_refCode=${formData.inviteCode}` : ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              {/* <img src="/icon/telegram.svg" alt="Telegram" className="w-4 h-4" /> */}
               Login with Telegram
-            </div>
+            </a>
           </div>
 
           {/* Wallet Connect */}

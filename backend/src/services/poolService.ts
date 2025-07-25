@@ -124,10 +124,11 @@ export class PoolService {
           getAddress(token0).toLowerCase() === WETH_ADDRESS.toLowerCase()
             ? getAddress(token1)
             : getAddress(token0);
+        
 
         logger.info('🚀 New V3 Pool with ETH Detected:', {
-          token0: getAddress(token0),
-          token1: getAddress(token1),
+          token0: tokenAddress,
+          token1: WETH_ADDRESS,
           fee,
           tickSpacing,
           pool: getAddress(pool),
@@ -141,7 +142,7 @@ export class PoolService {
         );
 
         // Save pool data to database
-        await this.savePoolToDatabase(newPool, token0, token1, fee);
+        await this.savePoolToDatabase(newPool, tokenAddress, WETH_ADDRESS, fee);
 
         // Send notifications to active users
         await this.notifyUsersOfNewPool(newPool);

@@ -1,6 +1,7 @@
 import api from '@/lib/axios'
 import { storageService } from '@/services/localstorage'
-import type { PoolRequest } from '@kunai/shared'
+import type { GeckoTerminalTrendingPool, PoolRequest } from '@kunai/shared'
+import { AxiosError } from 'axios'
 
 // Authentication API calls
 export const authAPI = {
@@ -42,6 +43,13 @@ export const authAPI = {
   // Logout
   logout: async (): Promise<void> => {
     await api.post('/api/auth/logout')
+    storageService.removeItem('authToken')
+  },
+
+  // Login with email
+  loginWithEmail: async (email: string, password: string) => {
+    const response = await api.post('/api/auth/login-with-email', { email, password })
+    return response.data
   },
 
   // Send verification code to email
@@ -58,6 +66,19 @@ export const authAPI = {
   }) => {
     const response = await api.post('/api/auth/verify-email', data)
     return response.data
+  },
+
+  // Verify telegram login
+  verifyTelegramLogin: async (user_id: string, code: string, refCode?: string | null) => {
+    try {
+      const response = await api.post('/api/auth/verify-telegram-login', { user_id, code, refCode })
+      return response.data
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        return { success: false, message: error.response?.data.message }
+      }
+      return { success: false, message: 'Failed to verify telegram login' }
+    }
   },
 }
 
@@ -189,6 +210,15 @@ export const poolsAPI = {
   getPools: async (params: PoolRequest = {}) => {
     const response = await api.get('/api/pools', { params })
     return response.data
+  },
+
+  // Get trending pools
+  getTrendingPools: async (chain: string): Promise<GeckoTerminalTrendingPool[]> => {
+    const response = await api.get(`/api/pools/trending?chain=${chain}`)
+    if (response.data.success) {
+      return response.data.data as GeckoTerminalTrendingPool[]
+    }
+    return []
   },
 
   // Get available filters

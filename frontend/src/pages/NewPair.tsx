@@ -9,6 +9,8 @@ import CopyIcon from '@/components/common/copy'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn, formatAge, formatNumber, getValueColor, formatPrice } from '@/lib/utils'
 import Presets from '@/components/common/presets'
+import TokenBuy from '@/components/common/token-buy'
+import { useAppSelector } from '@/store/hooks'
 
 // Transform pool data to Token format
 const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
@@ -66,7 +68,7 @@ const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
     token: {
       symbol: pool.token0.symbol,
       address: pool.token0.address,
-      logo: pool.token0.image_url,
+      logo: pool.token0.logo,
     },
     age: pool.age,
     initial: pool.dexViewData?.liquidity.quote || 0,
@@ -97,6 +99,8 @@ const NewPair = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isWindowFocused, setIsWindowFocused] = useState(true)
+  const [amount, setAmount] = useState<number>(0)
+  const { selectedChain } = useAppSelector((state) => state.other)
 
   // Create dynamic columns based on selected duration
   const columns = createColumns(selectedDuration)
@@ -362,7 +366,10 @@ const NewPair = () => {
             {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
           </div>
         </div>
-        <Presets />
+        <div className='flex items-center gap-2'>
+          <TokenBuy amount={amount} setAmount={setAmount} selectedChain={selectedChain} />
+          <Presets />
+        </div>
       </div>
 
       {/* Error message */}

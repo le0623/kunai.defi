@@ -11,6 +11,13 @@ const router: Router = Router();
 router.get('/', PoolController.getPools);
 
 /**
+ * @route GET /api/pools/trending/:chain
+ * @desc Get trending pools
+ * @access Private
+ */
+router.get('/trending', PoolController.getTrendingPools);
+
+/**
  * @route GET /api/pools/filters
  * @desc Get available filters and their options
  * @access Private

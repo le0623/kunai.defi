@@ -5,6 +5,7 @@ import { logger } from '@/utils/logger';
 import { prisma } from '@/config/database';
 import { SniperBotService } from './sniperBotService';
 import { PoolService } from './poolService';
+import { AuthService } from './authService';
 
 interface TelegramUser {
   id: number;
@@ -41,6 +42,7 @@ export class TelegramBotService {
   private static isInitialized = false;
   private static readonly BOT_TOKEN = process.env['TELEGRAM_BOT_TOKEN'];
   private static readonly WEBAPP_URL = process.env['TELEGRAM_WEBAPP_URL'] || '';
+  private static loginTokens: Map<string, { userId: string; expiresAt: Date; used: boolean }> | null = null;
 
   /**
    * Initialize the Telegram bot
@@ -85,6 +87,18 @@ export class TelegramBotService {
       if (!user) return;
 
       await this.saveUser(user);
+
+      // Check for start parameter
+      const startParam = ctx.payload;
+      
+      // Parse parameters from start payload
+      const payload = this.parseStartPayload(startParam);
+      
+      // Handle login start parameter
+      if (payload.action === 'login') {
+        await this.handleLoginStart(ctx, user, payload.params);
+        return;
+      }
 
       // Check if user already has a proxy wallet
       const telegramUser = await prisma.telegramUser.findUnique({
@@ -2272,5 +2286,84 @@ ${approvals
     } catch (error) {
       logger.error('Error handling retry WebApp action:', error);
     }
+  }
+
+  /**
+   * Handle login start parameter
+   */
+  private static async handleLoginStart(ctx: any, user: TelegramUser, params?: Record<string, string>): Promise<void> {
+    try {
+      const userId = user.id.toString();
+
+      // Parse parameters from start payload
+      const refCode = params?.refCode || '';
+
+      // Log for debugging
+      logger.info(`Login start - User: ${userId}, StartPayload: ${ctx.payload}, Params:`, params);
+      
+      // Generate a unique login token
+      const loginUrl = await AuthService.generateTelegramLoginLink(userId, refCode);
+      
+      const message = `
+🔐 KunAI Login
+
+Click the button below to access your KunAI dashboard:${refCode ? `
+
+🎯 **Referral Code:** ${refCode}` : ''}
+
+⚠️ **Security Notice:**
+- This link is unique to your account
+- Do not share this link with anyone
+- The link will expire in 10 minutes
+      `;
+
+      const inlineKeyboard = {
+        inline_keyboard: [
+          [
+            {
+              text: '🌐 Login to KunAI',
+              url: loginUrl
+            }
+          ]
+        ]
+      };
+
+      await ctx.reply(message, { reply_markup: inlineKeyboard });
+      
+    } catch (error) {
+      logger.error('Error handling login start:', error);
+      await ctx.reply('❌ Error generating login link. Please try again.');
+    }
+  }
+
+  /**
+   * Parse start payload parameters
+   * Handles URLs like: start=login&refCode=asdasd
+   */
+  private static parseStartPayload(startPayload?: string): { action?: string, params?: Record<string, string> } {
+    const params: Record<string, string> = {};
+    
+    if (!startPayload) return {};
+
+    const [action, rest] = startPayload.split('_');
+
+    if (!action) {
+      return {}
+    }
+
+    // Split by & to get individual parameters
+    const paramPairs = rest?.split('-') || [];
+
+    for (const pair of paramPairs) {
+      const [key, value] = pair.split('=');
+      if (key && value) {
+        params[key] = decodeURIComponent(value);
+      }
+    }
+    
+    return {
+      action,
+      params
+    };
   }
 }

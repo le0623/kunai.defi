@@ -17,6 +17,7 @@ export interface UIState {
   }
   selectedChain: string
   isWindowFocused: boolean
+  isDepositSheetOpen: boolean
 }
 
 const initialState: UIState = {
@@ -28,6 +29,7 @@ const initialState: UIState = {
   loadingStates: {},
   selectedChain: 'ethereum',
   isWindowFocused: true,
+  isDepositSheetOpen: false,
 }
 
 const uiSlice = createSlice({
@@ -83,6 +85,9 @@ const uiSlice = createSlice({
     setWindowFocus: (state, action: PayloadAction<boolean>) => {
       state.isWindowFocused = action.payload
     },
+    setIsDepositSheetOpen: (state, action: PayloadAction<boolean>) => {
+      state.isDepositSheetOpen = action.payload
+    },
   },
 })
 
@@ -101,6 +106,7 @@ export const {
   clearLoadingState,
   setSelectedChain,
   setWindowFocus,
+  setIsDepositSheetOpen,
 } = uiSlice.actions
 
 export default uiSlice.reducer 

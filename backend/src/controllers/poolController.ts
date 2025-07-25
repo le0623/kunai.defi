@@ -3,6 +3,7 @@ import { PoolService } from '@/services/poolService';
 import { logger } from '@/utils/logger';
 import { prisma } from '@/config/database';
 import { dexViewService, moralisService } from '@/services';
+import { geckoTerminalService } from '@/services/geckoterminalService';
 import { Address } from '@/types';
 import type { PoolRequest } from '@kunai/shared';
 
@@ -160,6 +161,28 @@ export class PoolController {
       res.status(500).json({
         success: false,
         error: 'Failed to fetch pools',
+      });
+    }
+  }
+
+  /**
+   * Get trending pools
+   */
+  static async getTrendingPools(req: Request, res: Response) {
+    try {
+      const { chain } = req.query;
+
+      const trendingPools = await geckoTerminalService.getTrendingPools(chain as string);
+
+      res.json({
+        success: true,
+        data: trendingPools,
+      });
+    } catch (error) {
+      logger.error('Error getting trending pools:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch trending pools',
       });
     }
   }

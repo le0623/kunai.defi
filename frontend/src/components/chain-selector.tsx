@@ -2,17 +2,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import ethereumIcon from '@/assets/icons/ethereum.svg'
 import solanaIcon from '@/assets/icons/solana.svg'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setSelectedChain } from '@/store/slices/otherSlice'
+import { useMemo } from 'react'
 
 // Chain configuration with icons and metadata
 export const SUPPORTED_CHAINS = [
   {
-    id: 'ethereum',
+    id: 'eth',
     name: 'Ethereum',
     icon: ethereumIcon,
     chainId: 1,
   },
   {
-    id: 'solana',
+    id: 'sol',
     name: 'Solana',
     icon: solanaIcon,
     chainId: 101,
@@ -20,22 +23,22 @@ export const SUPPORTED_CHAINS = [
 ]
 
 interface ChainSelectorProps {
-  selectedChain?: string
-  onChainChange: (chainId: string) => void
   className?: string
-  disabled?: boolean
 }
 
 export function ChainSelector({ 
-  selectedChain = 'ethereum', 
-  onChainChange, 
   className,
-  disabled = false 
 }: ChainSelectorProps) {
-  const selectedChainData = SUPPORTED_CHAINS.find(chain => chain.id === selectedChain)
+  const { selectedChain } = useAppSelector((state) => state.other)
+  const dispatch = useAppDispatch()
+  const selectedChainData = useMemo(() => SUPPORTED_CHAINS.find(chain => chain.id === selectedChain), [selectedChain])
+
+  const handleChainChange = (chainId: 'eth' | 'sol') => {
+    dispatch(setSelectedChain(chainId))
+  }
 
   return (
-    <Select value={selectedChain} onValueChange={onChainChange} disabled={disabled}>
+    <Select value={selectedChain} onValueChange={handleChainChange}>
       <SelectTrigger className={cn("h-9", className)}>
         <SelectValue>
           <div className="flex items-center gap-2">

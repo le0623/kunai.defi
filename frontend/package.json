@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -39,7 +39,8 @@
     "react-redux": "^9.2.0",
     "react-resizable-panels": "^3.0.3",
     "react-router-dom": "^6.22.1",
-    "sonner": "^2.0.5",
+    "redux-persist": "^6.0.0",
+    "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "viem": "~2.31.3",
     "wagmi": "^2.15.6"

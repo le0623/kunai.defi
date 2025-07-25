@@ -152,6 +152,152 @@ export class AuthService {
   }
 
   /**
+   * Generate telegram login link 
+   */
+  static async generateTelegramLoginLink(userId: string, refCode?: string): Promise<string> {
+    try {
+      const code = EmailService.generateVerificationCode();
+      const expiresAt = new Date(Date.now() + 60 * 1000); // 60 seconds
+
+      // Save or update verification code
+      await prisma.user.upsert({
+        where: { telegramUserId: userId },
+        update: {
+          verificationCode: code,
+          verificationCodeExpires: expiresAt,
+        },
+        create: {
+          telegramUserId: userId,
+          verificationCode: code,
+          verificationCodeExpires: expiresAt,
+        },
+      });
+
+      let loginUrl = `https://kunai.trade/tgauth?code=${code}&user_id=${userId}`;
+      if (refCode) {
+        loginUrl += `&refCode=${encodeURIComponent(refCode)}`;
+      }
+
+      return loginUrl;
+    } catch (error) {
+      return "https://kunai.trade";
+    }
+  }
+
+  /**
+   * Verify telegram login and complete authentication
+   */
+  static async verifyTelegramLogin(
+    userId: string,
+    code: string,
+    refCode?: string
+  ): Promise<{ success: boolean; token?: string; message: string }> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { telegramUserId: userId },
+        include: {
+          inAppWallet: true,
+        },
+      });
+
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      if (!user.verificationCode || !user.verificationCodeExpires) {
+        return { success: false, message: 'No verification code found' };
+      }
+
+      // Check if code is expired
+      if (new Date() > user.verificationCodeExpires) {
+        return { success: false, message: 'Verification code has expired' };
+      }
+
+      // Check if code matches
+      if (user.verificationCode !== code) {
+        return { success: false, message: 'Invalid verification code' };
+      }
+
+      // Update user - clear verification code
+      const updateData: any = {
+        verificationCode: null,
+        verificationCodeExpires: null,
+      };
+
+      // Check if this is a first-time login (no in-app wallet exists)
+      const isFirstTimeLogin = !user.inAppWallet;
+
+      if (isFirstTimeLogin) {
+        // This is a first-time login process
+        logger.info(`First-time login process for Telegram user ${userId}`);
+
+        // Handle referral code if provided
+        if (refCode) {
+          const referrer = await prisma.user.findUnique({
+            where: { inviteCode: refCode },
+          });
+
+          if (referrer) {
+            updateData.invitedByUserId = referrer.id;
+            logger.info(
+              `Telegram user ${userId} referred by ${referrer.id} using referral code ${refCode}`
+            );
+          } else {
+            logger.warn(
+              `Invalid referral code ${refCode} used by Telegram user ${userId}`
+            );
+          }
+        }
+
+        // Create in-app wallet for new user
+        try {
+          const wallet = await WalletService.createInAppWallet(user.id);
+          logger.info(
+            `Created in-app wallet for new Telegram user ${user.id}: ${wallet.address}`
+          );
+        } catch (walletError) {
+          logger.error(
+            `Failed to create wallet for Telegram user ${user.id}:`,
+            walletError
+          );
+          // Don't fail the login if wallet creation fails
+        }
+      } else {
+        // This is a regular login process
+        logger.info(
+          `Regular login process for existing Telegram user ${userId}`
+        );
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: updateData,
+      });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { data: { id: updatedUser.id } },
+        Buffer.from(this.JWT_SECRET),
+        { expiresIn: this.JWT_EXPIRES_IN } as SignOptions
+      );
+
+      logger.info(
+        `Telegram login verified for user ${userId} - ${isFirstTimeLogin ? 'First-time login' : 'Regular login'} completed`
+      );
+      return {
+        success: true,
+        token,
+        message: isFirstTimeLogin
+          ? 'Account created successfully!'
+          : 'Login successful!',
+      };
+    } catch (error) {
+      logger.error(`Error verifying Telegram login for user ${userId}:`, error);
+      return { success: false, message: 'Verification failed' };
+    }
+  }
+
+  /**
    * Verify email code and complete registration/login
    */
   static async verifyEmailCode(

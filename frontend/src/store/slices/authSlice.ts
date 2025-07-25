@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit'
 import { authAPI } from '@/services/api'
+import { storageService } from '@/services/localstorage'
 
 export interface User {
   id: string
@@ -14,26 +15,47 @@ export interface AuthState {
   user: User | null
   token: string | null
   isAuthenticated: boolean
+  isAuthDlgOpen: boolean
   isLoading: boolean
   error: string | null
-  isEmailVerified: boolean
 }
 
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('authToken'),
+  token: storageService.getItem('authToken'),
   isAuthenticated: false,
+  isAuthDlgOpen: false,
   isLoading: false,
   error: null,
-  isEmailVerified: false,
 }
 
 // Async thunks
+export const checkAuthStatus = createAsyncThunk(
+  'auth/checkAuthStatus',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = storageService.getItem('authToken')
+      if (!token) {
+        return { isAuthenticated: false, token: null }
+      }
+      
+      // For now, just return the token exists
+      // Uncomment the API call when ready to verify with backend
+      // const isValid = await authAPI.checkAuth()
+      // return { isAuthenticated: isValid, token: isValid ? token : null }
+      
+      return { isAuthenticated: true, token }
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Auth check failed')
+    }
+  }
+)
+
 export const loginWithEmail = createAsyncThunk(
   'auth/loginWithEmail',
-  async (email: string, { rejectWithValue }) => {
+  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await authAPI.loginWithEmail(email)
+      const response = await authAPI.loginWithEmail(email, password)
       if (response.success) {
         return response.data
       } else {
@@ -49,7 +71,7 @@ export const verifyEmail = createAsyncThunk(
   'auth/verifyEmail',
   async ({ email, code }: { email: string; code: string }, { rejectWithValue }) => {
     try {
-      const response = await authAPI.verifyEmail(email, code)
+      const response = await authAPI.verifyEmailCode({ email, code })
       if (response.success) {
         return response.data
       } else {
@@ -61,27 +83,11 @@ export const verifyEmail = createAsyncThunk(
   }
 )
 
-export const loginWithWallet = createAsyncThunk(
-  'auth/loginWithWallet',
-  async (signature: string, { rejectWithValue }) => {
-    try {
-      const response = await authAPI.loginWithWallet(signature)
-      if (response.success) {
-        return response.data
-      } else {
-        return rejectWithValue(response.message || 'Wallet login failed')
-      }
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Wallet login failed')
-    }
-  }
-)
-
 export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
     try {
-      await authAPI.logout()
+      clearToken()
       return null
     } catch (error: any) {
       return rejectWithValue(error.message || 'Logout failed')
@@ -96,27 +102,50 @@ const authSlice = createSlice({
     setToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload
       state.isAuthenticated = true
-      localStorage.setItem('authToken', action.payload)
+      storageService.setItem('authToken', action.payload)
     },
     clearToken: (state) => {
       state.token = null
       state.isAuthenticated = false
       state.user = null
-      localStorage.removeItem('authToken')
+      storageService.removeItem('authToken')
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload
       state.isAuthenticated = true
     },
-    setEmailVerified: (state, action: PayloadAction<boolean>) => {
-      state.isEmailVerified = action.payload
-    },
     clearError: (state) => {
       state.error = null
+    },
+    showAuthDlg: (state, action: PayloadAction<boolean>) => {
+      state.isAuthDlgOpen = action.payload
+    },
+    login: (state, action: PayloadAction<string>) => {
+      state.token = action.payload
+      state.isAuthenticated = true
+      state.isAuthDlgOpen = false
+      storageService.setItem('authToken', action.payload)
     },
   },
   extraReducers: (builder) => {
     builder
+      // Check auth status
+      .addCase(checkAuthStatus.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(checkAuthStatus.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.isAuthenticated = action.payload.isAuthenticated
+        state.token = action.payload.token
+      })
+      .addCase(checkAuthStatus.rejected, (state, action) => {
+        state.isLoading = false
+        state.isAuthenticated = false
+        state.token = null
+        state.error = action.payload as string
+        storageService.removeItem('authToken')
+      })
       // Login with email
       .addCase(loginWithEmail.pending, (state) => {
         state.isLoading = true
@@ -124,7 +153,6 @@ const authSlice = createSlice({
       })
       .addCase(loginWithEmail.fulfilled, (state, action) => {
         state.isLoading = false
-        state.isEmailVerified = false
       })
       .addCase(loginWithEmail.rejected, (state, action) => {
         state.isLoading = false
@@ -140,27 +168,9 @@ const authSlice = createSlice({
         state.user = action.payload.user
         state.token = action.payload.token
         state.isAuthenticated = true
-        state.isEmailVerified = true
-        localStorage.setItem('authToken', action.payload.token)
+        storageService.setItem('authToken', action.payload.token)
       })
       .addCase(verifyEmail.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = action.payload as string
-      })
-      // Login with wallet
-      .addCase(loginWithWallet.pending, (state) => {
-        state.isLoading = true
-        state.error = null
-      })
-      .addCase(loginWithWallet.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.user = action.payload.user
-        state.token = action.payload.token
-        state.isAuthenticated = true
-        state.isEmailVerified = true
-        localStorage.setItem('authToken', action.payload.token)
-      })
-      .addCase(loginWithWallet.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.payload as string
       })
@@ -169,11 +179,17 @@ const authSlice = createSlice({
         state.user = null
         state.token = null
         state.isAuthenticated = false
-        state.isEmailVerified = false
-        localStorage.removeItem('authToken')
+        storageService.removeItem('authToken')
       })
   },
 })
 
-export const { setToken, clearToken, setUser, setEmailVerified, clearError } = authSlice.actions
+export const { 
+  setToken, 
+  clearToken, 
+  setUser, 
+  clearError, 
+  showAuthDlg, 
+  login,
+} = authSlice.actions
 export default authSlice.reducer 

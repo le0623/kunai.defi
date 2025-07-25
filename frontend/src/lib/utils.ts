@@ -61,7 +61,7 @@ export const formatAge = (ageInSeconds: number): { formatted: string; color: str
 // Helper function to format price with subscript
 export const formatPrice = (price: number): string => {
   if (price >= 0.0001) {
-    return `$${price.toFixed(4)}`;
+    return price.toFixed(4);
   }
 
   // Use exponential notation to count zeros
@@ -76,5 +76,5 @@ export const formatPrice = (price: number): string => {
     ? String.fromCharCode(8320 + leadingZeros) // '₀' to '₉'
     : `(${leadingZeros})`; // fallback for ≥10
 
-  return `$0.0${subscript}${significantDigits}`;
+  return `0.0${subscript}${significantDigits}`;
 }
