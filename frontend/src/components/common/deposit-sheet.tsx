@@ -42,8 +42,8 @@ const DepositSheet: React.FC<DepositSheetProps> = ({ children }) => {
   const dispatch = useAppDispatch()
   const ui = useAppSelector((state) => state.ui)
 
-  // Mock Solana address - replace with actual address from your system
-  const depositAddress = auth.user?.address || "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+  // Get the user's in-app wallet address
+  const depositAddress = auth.user?.inAppWallet || auth.user?.address || "No wallet address available"
 
   return (
     <Sheet open={ui.isDepositSheetOpen} onOpenChange={(open) => dispatch(setIsDepositSheetOpen(open))}>
@@ -57,27 +57,42 @@ const DepositSheet: React.FC<DepositSheetProps> = ({ children }) => {
             Deposit Funds
           </SheetTitle>
           <SheetDescription>
-            Scan the QR code or copy the address to deposit ETH
+            {depositAddress !== "No wallet address available" 
+              ? "Scan the QR code or copy the address to deposit ETH"
+              : "Please connect your wallet to deposit funds"
+            }
           </SheetDescription>
         </SheetHeader>
 
         {/* QR Code Section */}
-        <Card className="bg-transparent m-4">
-          <CardContent className="p-4">
-            <div className="space-y-4">
-              <QRCode value={depositAddress} size={180} />
-              {/* Address Display */}
-              <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
-                <span className="font-mono text-sm break-all">{depositAddress}</span>
-                <CopyIcon clipboardText={depositAddress} />
+        {depositAddress !== "No wallet address available" ? (
+          <Card className="bg-transparent m-4">
+            <CardContent className="p-4">
+              <div className="space-y-4">
+                <QRCode value={depositAddress} size={180} />
+                {/* Address Display */}
+                <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
+                  <span className="font-mono text-sm break-all">{depositAddress}</span>
+                  <CopyIcon clipboardText={depositAddress} />
+                </div>
+                <div className="flex items-start gap-1 text-yellow-800 dark:text-yellow-200 text-sm">
+                  <AlertTriangle className="h-5 w-5 text-yellow-800 dark:text-yellow-200 mt-0.5 flex-shrink-0" />
+                  This address only supports ETH deposits via the Ethereum network. Please do not use other networks to avoid any loss of funds.
+                </div>
               </div>
-              <div className="flex items-start gap-1 text-yellow-800 dark:text-yellow-200 text-sm">
-                <AlertTriangle className="h-5 w-5 text-yellow-800 dark:text-yellow-200 mt-0.5 flex-shrink-0" />
-                This address only supports ETH deposits via the Ethereum network. Please do not use other networks to avoid any loss of funds.
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-transparent m-4">
+            <CardContent className="p-4">
+              <div className="text-center py-8 text-muted-foreground">
+                <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No wallet address available</p>
+                <p className="text-sm">Please connect your wallet to deposit funds</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </SheetContent>
     </Sheet>
   )

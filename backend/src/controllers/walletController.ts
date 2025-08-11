@@ -76,6 +76,36 @@ export class WalletController {
   }
 
   /**
+   * Get current user's in-app wallet balance
+   */
+  static async getCurrentUserWalletBalance(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const balance = await WalletService.getCurrentUserWalletBalance(userId);
+
+      res.json({
+        success: true,
+        balance,
+      });
+    } catch (error) {
+      logger.error('Error getting current user wallet balance:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get balance',
+      });
+    }
+  }
+
+  /**
    * Execute a trade
    */
   static async executeTrade(req: Request, res: Response): Promise<void> {

@@ -2,11 +2,12 @@ import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import logo from '@/assets/logo.svg'
 import { SearchBox } from './common/search-box'
-import Button from './common/button'
+import { Button } from '@/components/ui/button'
 import { useAuth, useAppDispatch } from '@/store/hooks'
 import AccountMenu from './account-menu'
 import { ChainSelector } from './chain-selector'
 import { setIsDepositSheetOpen } from '@/store/slices/uiSlice'
+import { useAccount } from 'wagmi'
 
 const navItems = [
   // { path: '/', label: 'Dashboard' },
@@ -20,6 +21,7 @@ const navItems = [
 const Header = () => {
   const location = useLocation()
   const { showAuthDlg, isAuthenticated } = useAuth()
+  const { isConnected } = useAccount()
   const dispatch = useAppDispatch()
 
   return (
@@ -40,10 +42,10 @@ const Header = () => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm font-medium !text-white",
+                  "flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm font-medium",
                   isActive
-                    ? "!text-secondary"
-                    : "text-muted-foreground hover:!text-secondary"
+                    ? "text-white"
+                    : "text-white/50 hover:text-white hover:bg-muted"
                 )}
               >
                 {item.label}
@@ -62,13 +64,14 @@ const Header = () => {
         />
 
         {/* Connect Wallet */}
-        {isAuthenticated ? (
+        {isAuthenticated || isConnected ? (
           <>
-            <Button onClick={() => dispatch(setIsDepositSheetOpen(true))}>Deposit</Button>
+            {isAuthenticated && <Button onClick={() => dispatch(setIsDepositSheetOpen(true))}>Deposit</Button>}
             <AccountMenu />
           </>
         ) : (
-          <Button 
+          <Button
+            variant="primary"
             onClick={() => showAuthDlg(true)}
           >
             Sign in

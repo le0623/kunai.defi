@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { geckoTerminalService } from '@/services/geckoterminalService';
 import { logger } from '@/utils/logger';
 import { goplusService } from '@/services/goplusService';
+import { moralisService } from '@/services';
 
 export class TokenController {
   /**
@@ -76,6 +77,57 @@ export class TokenController {
         error: 'Failed to fetch token information',
       });
     }
+  }
+
+  /**
+   * Get token security from goplus
+   * @route GET /api/token/:chain/:address/security
+   * @access Public
+   */
+  static async getTokenSecurity(req: Request, res: Response) {
+    try {
+      const { chain, address } = req.params;
+      if (!chain || !address) {
+        return res.status(400).json({
+          success: false,
+          error: 'Chain and address parameters are required',
+        });
+      }
+      
+      const security = await goplusService.getTokenSecurity(chain, address);
+
+      return res.json({
+        success: true,
+        data: security,
+      });
+    } catch (error) {
+      logger.error(`Error fetching token security: ${error}`);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch token security',
+      });
+    }
+  }
+
+  /**
+   * Get token swaps by token address
+   */
+  static async getTokenSwaps(req: Request, res: Response) {
+    const { chain, address } = req.params;
+    if (!chain || !address) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chain and address parameters are required',
+      });
+    }
+    const swaps = await moralisService.getSwapsByTokenAddress({
+      chain,
+      address,
+    });
+    return res.json({
+      success: true,
+      data: swaps,
+    });
   }
 
   /**

@@ -5,7 +5,7 @@ import { prisma } from '@/config/database';
 import { dexViewService, moralisService } from '@/services';
 import { geckoTerminalService } from '@/services/geckoterminalService';
 import { Address } from '@/types';
-import type { PoolRequest } from '@kunai/shared';
+import type { GeckoTerminalTrendingPool, KunaiTrendingPool, MoralisTokenMetadata, PoolRequest } from '@kunai/shared';
 
 export class PoolController {
   /**
@@ -166,6 +166,49 @@ export class PoolController {
   }
 
   /**
+   * Get pool by token address
+   */
+  static async getPoolByTokenAddress(req: Request, res: Response) {
+    try {
+      const { tokenAddress } = req.params;
+      const pool = await prisma.pool.findFirst({
+        where: {
+          token0Address: tokenAddress as string,
+        },
+      });
+
+      res.json({
+        success: true,
+        data: pool,
+      });
+    } catch (error) {
+      logger.error('Error getting pool by token address:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch pool',
+      });
+    }
+  }
+
+  /**
+   * Get specific token pool 
+   */
+  static async getSpecificTokenPool(req: Request, res: Response) {
+    const { token0Address, token1Address, exchange } = req.query;
+    const pool = await moralisService.getSpecificTokenPool({
+      chain: 'eth',
+      token0Address: token0Address as string,
+      token1Address: token1Address as string,
+      exchange: exchange as 'uniswapv2' | 'uniswapv3' | 'sushiswapv2' | 'pancakeswapv2' | 'pancakeswapv1' | 'quickswap',
+    });
+
+    res.json({
+      success: true,
+      data: pool.raw,
+    });
+  }
+
+  /**
    * Get trending pools
    */
   static async getTrendingPools(req: Request, res: Response) {
@@ -173,10 +216,16 @@ export class PoolController {
       const { chain } = req.query;
 
       const trendingPools = await geckoTerminalService.getTrendingPools(chain as string);
+      const tokenAddresses = trendingPools.map((pool: GeckoTerminalTrendingPool) => pool.relationships.base_token.data.id.split('_')[1] as Address);
+      const tokenMetadata = await moralisService.getTokensMetadata(chain as string, tokenAddresses);
 
+      const enrichedPools = trendingPools.map((pool: GeckoTerminalTrendingPool) => ({
+        ...pool,
+        metadata: tokenMetadata.find((token: MoralisTokenMetadata) => token.address === pool.relationships.base_token.data.id.split('_')[1]),
+      })) as KunaiTrendingPool[];
       res.json({
         success: true,
-        data: trendingPools,
+        data: enrichedPools,
       });
     } catch (error) {
       logger.error('Error getting trending pools:', error);

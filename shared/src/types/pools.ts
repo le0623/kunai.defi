@@ -1,20 +1,23 @@
 // Pool-related types
 
 import { PaginatedResponse, PaginationParams } from "."
+import { MoralisTokenMetadata } from "."
 
 export interface TokenInfo {
-  address: string,
-  symbol: string,
-  name: string,
-  decimals: number,
-  logo?: string,
-  thumbnail?: string,
-  totalSupply?: number,
-  totalSupplyFormatted?: string,
-  isVerified: boolean,
-  isPossibleSpam: boolean,
-  categories: string[],
-  links: TokenLinks,
+  address: string
+  name: string
+  symbol: string
+  decimals: number
+  imageUrl: string
+  coingeckoCoinId: string
+  totalSupply: string
+  normalizedTotalSupply: string
+  priceUsd: number
+  fdvUsd: number
+  totalReserveInUsd: number
+  volume24h: number
+  marketCapUsd: number
+  topPools: string[]
 }
 
 export interface TokenLinks {
@@ -257,4 +260,8 @@ export interface GeckoTerminalTrendingPool {
       }
     }
   }
+}
+
+export interface KunaiTrendingPool extends GeckoTerminalTrendingPool {
+  metadata: MoralisTokenMetadata | null
 }

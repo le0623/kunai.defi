@@ -38,5 +38,19 @@ export default defineConfig(({ mode }) => {
         allow: ['..'],
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            router: ['react-router-dom'],
+            redux: ['@reduxjs/toolkit', 'react-redux', 'redux-persist'],
+          },
+        },
+      },
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react-router-dom'],
+    },
   }
 })

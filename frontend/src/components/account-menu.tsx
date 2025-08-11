@@ -13,15 +13,19 @@ import {
   Users,
   Trophy,
   LogOut,
+  BarChart3,
 } from 'lucide-react'
 import CopyIcon from './common/copy'
-import { useAccount, useBalance } from 'wagmi'
+import { useDisconnect, useAccount, useBalance } from 'wagmi'
 import { shortenAddress } from '@/lib/utils'
 import { authAPI } from '@/services/api'
+import { useNavigate } from 'react-router-dom'
 
 const AccountMenu = () => {
   const { logout, isAuthenticated } = useAuth()
+  const { disconnect } = useDisconnect()
   const { address: walletAddress, isConnected } = useAccount()
+  const navigate = useNavigate()
   const { data: balance } = useBalance({
     address: walletAddress,
     chainId: 1,
@@ -35,22 +39,26 @@ const AccountMenu = () => {
   useEffect(() => {
     const fetchUser = async () => {
       if (isAuthenticated) {
-        if (isConnected) {
-          setWalletInfo({
-            address: walletAddress || '',
-            balance: Number(balance?.value || 0),
-          })
-          return
-        }
+        // Use in-app wallet balance
         const user = await authAPI.getCurrentUser()
+        const inAppBalance = await import('@/services/tradingService').then(m =>
+          m.tradingService.getEthBalance(user.inAppWallet)
+        )
         setWalletInfo({
           address: user.inAppWallet,
-          balance: Number(balance?.value || 0),
+          balance: Number(inAppBalance || 0),
+        })
+      } else if (isConnected && walletAddress) {
+        // Use external wallet balance
+        setWalletInfo({
+          address: walletAddress,
+          balance: Number(balance?.formatted || 0),
         })
       }
     }
+
     fetchUser()
-  }, [isAuthenticated, isConnected])
+  }, [isAuthenticated, isConnected, walletAddress, balance?.formatted])
 
   return (
     <DropdownMenu modal={false}>
@@ -94,11 +102,22 @@ const AccountMenu = () => {
           <span>Contests</span>
         </DropdownMenuItem>
 
+        <DropdownMenuItem
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => navigate('/portfolio')}
+        >
+          <BarChart3 className="h-4 w-4" />
+          <span>Portfolio</span>
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
           className="flex items-center gap-3 cursor-pointer text-red-600 focus:text-red-600"
-          onClick={logout}
+          onClick={() => {
+            logout()
+            disconnect()
+          }}
         >
           <LogOut className="h-4 w-4" />
           <span>Disconnect</span>

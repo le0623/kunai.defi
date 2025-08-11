@@ -5,7 +5,9 @@ import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
+  type SortingState,
 } from "@tanstack/react-table"
 
 import {
@@ -31,14 +33,19 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  renderCell,
-  renderHeader,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
+  const [sorting, setSorting] = React.useState<SortingState>([])
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    state: {
+      sorting,
+    },
   })
 
   return (
@@ -57,9 +64,7 @@ export function DataTable<TData, TValue>({
 
                 return (
                   <TableHead key={header.id}>
-                    {renderHeader && typeof headerContent === 'string'
-                      ? renderHeader(headerContent, header.id)
-                      : headerContent}
+                    {headerContent}
                   </TableHead>
                 )
               })}
@@ -83,9 +88,7 @@ export function DataTable<TData, TValue>({
 
                   return (
                     <TableCell key={cell.id}>
-                      {renderCell
-                        ? renderCell(cell.getValue(), row.original, cell.column.id)
-                        : cellValue}
+                      {cellValue}
                     </TableCell>
                   )
                 })}

@@ -1,11 +1,8 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
-import {
-  MoralisTokenMetadata,
-  TokenMetadataInfo,
-  MoralisServiceConfig,
-} from '../types/moralis';
+import { type MoralisTokenMetadata, type TokenMetadataInfo, type MoralisServiceConfig } from '@kunai/shared';
 import { Address } from '@/types';
+import Moralis from 'moralis';
 
 export class MoralisService {
   private baseUrl: string;
@@ -30,7 +27,7 @@ export class MoralisService {
   async getTokensMetadata(
     chain: string,
     addresses: Address[]
-  ): Promise<TokenMetadataInfo[]> {
+  ): Promise<MoralisTokenMetadata[]> {
     try {
       if (!this.apiKey) {
         logger.warn('Moralis API key not configured');
@@ -61,7 +58,7 @@ export class MoralisService {
         return [];
       }
 
-      return response.data.map(metadata => this.transformMetadata(metadata));
+      return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
@@ -84,6 +81,36 @@ export class MoralisService {
       }
       return [];
     }
+  }
+
+  /**
+   * Get specific token pool
+   */
+  async getSpecificTokenPool(
+    params: Parameters<typeof Moralis.EvmApi.defi.getPairAddress>[0]
+  ): ReturnType<typeof Moralis.EvmApi.defi.getPairAddress> {
+    return await Moralis.EvmApi.defi.getPairAddress(params);
+  }
+
+  /**
+   * Get swaps by token address
+   */
+  async getSwapsByTokenAddress(
+    params: {
+      chain: string;
+      address: string;
+    }
+  ): Promise<any> {
+    const options = {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'X-API-Key': this.apiKey,
+      },
+    };
+
+    const response = await fetch(`${this.baseUrl}/erc20/${params.address}/swaps?chain=${params.chain}&order=DESC`, options)
+    return response.json();
   }
 
   /**

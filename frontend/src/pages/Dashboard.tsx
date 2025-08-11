@@ -2,62 +2,20 @@ import { DataTable } from '@/components/table/data-table'
 import { useAppSelector } from '@/store/hooks'
 import { poolsAPI } from '@/services/api'
 import { useEffect, useState } from 'react'
-import type { GeckoTerminalTrendingPool } from '@kunai/shared'
-import { SearchIcon, StarIcon } from 'lucide-react'
+import type { KunaiTrendingPool } from '@kunai/shared'
+import { ArrowUp, ArrowDown, SearchIcon, StarIcon, User, Globe, X, Send } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { shortenAddress, getValueColor, formatPrice, formatNumber, formatAge, cn } from '@/lib/utils'
 import CopyIcon from '@/components/common/copy'
 import { Button } from '@/components/ui/button'
 import { CloudLightningIcon } from 'lucide-react'
-import { type ColumnDef } from '@tanstack/react-table'
+import { type Column, type ColumnDef } from '@tanstack/react-table'
 import Presets from '@/components/common/presets'
 import TokenBuy from '@/components/common/token-buy'
+import { TooltipImage } from '@/components/common/tooltip-image'
+import ButtonGroup from '@/components/common/button-group'
 
-const columnsTrendingTable = (duration: string = '1h'): ColumnDef<GeckoTerminalTrendingPool>[] => [
-  {
-    accessorKey: "token",
-    header: "Token",
-  },
-  {
-    accessorKey: "age",
-    header: "Age",
-  },
-  {
-    accessorKey: "mc",
-    header: "Market Cap",
-  },
-  {
-    accessorKey: "txs",
-    header: `${duration} TXs`,
-  },
-  {
-    accessorKey: "vol",
-    header: `${duration} Vol`,
-  },
-
-  {
-    accessorKey: "price",
-    header: "Price",
-  },
-  {
-    accessorKey: "price_change_5m",
-    header: "5m%",
-  },
-  {
-    accessorKey: "price_change_15m",
-    header: "15m%",
-  },
-  {
-    accessorKey: "price_change_1h",
-    header: "1h%",
-  },
-  {
-    accessorKey: "buy",
-    header: "",
-  },
-]
-
-type Duration = keyof GeckoTerminalTrendingPool['attributes']['transactions']
+type Duration = keyof KunaiTrendingPool['attributes']['transactions']
 
 const durations: { value: Duration, label: string }[] = [
   { value: 'm5', label: '5m' },
@@ -71,29 +29,65 @@ const durations: { value: Duration, label: string }[] = [
 export default function Dashboard() {
   const navigate = useNavigate()
   const { selectedChain } = useAppSelector((state) => state.other)
-  const [trendingPools, setTrendingPools] = useState<GeckoTerminalTrendingPool[]>([])
+  const [trendingPools, setTrendingPools] = useState<KunaiTrendingPool[]>([])
   const [duration, setDuration] = useState<Duration>('h1')
   const [amount, setAmount] = useState<number>(0)
 
-  const renderCell = (value: any, row: GeckoTerminalTrendingPool, columnId: string) => {
-    switch (columnId) {
-      case 'token':
-        const symbol = row.attributes.name.split(' ')[0]
-        const address = row.attributes.address
+  // Helper function to render sorting arrow
+  const renderSortArrow = (column: Column<KunaiTrendingPool>) => {
+    const isSorted = column.getIsSorted()
+    const onClick = () => column.toggleSorting(column.getIsSorted() === "asc")
+    if (isSorted === "asc") return <ArrowUp className="h-4 w-4 cursor-pointer" onClick={onClick} />
+    if (isSorted === "desc") return <ArrowDown className="h-4 w-4 cursor-pointer" onClick={onClick} />
+    return <ArrowDown className="h-4 w-4 text-muted-foreground cursor-pointer" onClick={() => column.toggleSorting(true)} />
+  }
+
+  const getLinkIcon = (type: string) => {
+    switch (type) {
+      case 'website':
+        return <Globe className="w-4 h-4" />
+      case 'twitter':
+        return <img src="/icon/x.svg" className="w-4 h-4" alt="X" />
+      case 'telegram':
+        return <Send className="w-4 h-4" />
+      default:
+        return <User className="w-4 h-4" />
+    }
+  }
+
+  const columnsTrendingTable = (duration: string = '1h'): ColumnDef<KunaiTrendingPool>[] => [
+    {
+      accessorKey: "token",
+      header: "Token",
+      cell: ({ row }) => {
+        const symbol = row.original.attributes.name.split(' ')[0]
+        const address = row.original.attributes.address
+        const links = row.original.metadata?.links || {}
+
+        // Only show website, telegram, and twitter in sequence
+        const priorityLinks = ['website', 'telegram', 'twitter']
+        const linkEntries = priorityLinks
+          .map(platform => [platform, (links as any)[platform]])
+          .filter(([_, url]) => url)
+
         return (
           <div className="flex items-center gap-2">
             <StarIcon
               className="w-4 h-4 text-muted-foreground hover:text-white"
               onClick={(e) => e.stopPropagation()}
             />
-            <div className="w-16 h-16 bg-black border border-gray-500 rounded-full flex items-center justify-center">
-              <span className="text-lg font-medium">{symbol.slice(0, 2)}</span>
-            </div>
+            {row.original.metadata?.thumbnail ? (
+              <TooltipImage thumbnail={row.original.metadata?.thumbnail} src={row.original.metadata?.logo} alt={symbol} />
+            ) : (
+              <div className="w-16 h-16 bg-black border border-gray-500 rounded-full flex items-center justify-center">
+                <span className="text-lg font-medium">{symbol.slice(0, 2)}</span>
+              </div>
+            )}
             <div className="flex flex-col">
               <div className="flex items-center gap-1">
                 <span className="text-sm font-medium">{symbol}</span>
                 <Link to={`https://x.com/search?q=($${symbol} OR ${address})&src=typed_query&f=live`} target="_blank" className="cursor-pointer">
-                  <SearchIcon className="w-3 h-3 text-muted-foreground hover:text-white" />
+                  <SearchIcon className="w-4 h-4 text-muted-foreground hover:text-white" />
                 </Link>
               </div>
               <div className="flex items-center gap-1">
@@ -101,29 +95,82 @@ export default function Dashboard() {
                 <div onClick={(e) => e.stopPropagation()}>
                   <CopyIcon clipboardText={address} />
                 </div>
+                {linkEntries.map(([platform, url]) => (
+                  <Link
+                    key={platform}
+                    to={url as string}
+                    target="_blank"
+                    className="cursor-pointer hover:scale-110 transition-transform"
+                    title={platform}
+                  >
+                    {getLinkIcon(platform)}
+                  </Link>
+                ))}
               </div>
             </div>
           </div>
         )
-
-      case 'age':
+      },
+    },
+    {
+      accessorFn: (row) => {
         const poolCreatedAt = new Date(row.attributes.pool_created_at)
-        const ageInSeconds = Math.floor((new Date().getTime() - poolCreatedAt.getTime()) / 1000)
+        return Math.floor((new Date().getTime() - poolCreatedAt.getTime()) / 1000)
+      },
+      id: "age",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            Age
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const ageInSeconds = row.getValue("age") as number
         return (
           <span className="text-sm font-medium">
             {formatAge(ageInSeconds).formatted}
           </span>
         )
-
-      case 'mc':
+      },
+    },
+    {
+      accessorFn: (row) => Number(row.attributes.market_cap_usd),
+      id: "mc",
+      header: ({ column }) => {
         return (
-          <span className={`text-sm font-medium ${getValueColor(Number(row.attributes.market_cap_usd), 'mc')}`}>
-            ${formatNumber(Number(row.attributes.market_cap_usd))}
+          <div className="flex items-center gap-1">
+            Market Cap
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const marketCap = row.getValue("mc") as number
+        return (
+          <span className={`text-sm font-medium ${getValueColor(marketCap, 'mc')}`}>
+            ${formatNumber(marketCap)}
           </span>
         )
-
-      case 'txs':
+      },
+    },
+    {
+      accessorFn: (row) => {
         const txs = row.attributes.transactions[duration as keyof typeof row.attributes.transactions]
+        return txs.buys + txs.sells
+      },
+      id: "txs",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            {duration} TXs
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const txs = row.original.attributes.transactions[duration as keyof typeof row.original.attributes.transactions]
         return (
           <div className="flex flex-col gap-1">
             <span className="text-sm">{txs.buys + txs.sells}</span>
@@ -134,27 +181,62 @@ export default function Dashboard() {
             </div>
           </div>
         )
-
-      case 'vol':
-        const vol = row.attributes.volume_usd[duration as keyof typeof row.attributes.volume_usd]
-        const volColor = getValueColor(Number(vol), 'vol')
+      },
+    },
+    {
+      accessorFn: (row) => Number(row.attributes.volume_usd[duration as keyof typeof row.attributes.volume_usd]),
+      id: "vol",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            {duration} Vol
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const volume = row.getValue("vol") as number
+        const volColor = getValueColor(volume, 'vol')
         return (
           <span className={`text-sm ${volColor}`}>
-            ${formatNumber(Number(vol))}
+            ${formatNumber(volume)}
           </span>
         )
-
-      case 'price':
+      },
+    },
+    {
+      accessorFn: (row) => Number(row.attributes.base_token_price_usd),
+      id: "price",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            Price
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const price = row.getValue("price") as number
         return (
           <span className="text-sm font-mono font-medium">
-            ${formatPrice(Number(row.attributes.base_token_price_usd))}
+            ${formatPrice(price)}
           </span>
         )
-
-      case 'price_change_5m':
-      case 'price_change_15m':
-      case 'price_change_1h':
-        const changeValue = Number(row.attributes.price_change_percentage[duration as keyof typeof row.attributes.price_change_percentage])
+      },
+    },
+    {
+      accessorFn: (row) => Number(row.attributes.price_change_percentage.m5),
+      id: "price_change_5m",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            5m%
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const changeValue = row.getValue("price_change_5m") as number
         const changeColor = changeValue >= 0 ? 'text-green-500' : 'text-red-500'
         const changeSign = changeValue >= 0 ? '+' : ''
         return (
@@ -162,21 +244,67 @@ export default function Dashboard() {
             {changeSign}{changeValue}%
           </span>
         )
-
-      case 'buy':
+      },
+    },
+    {
+      accessorFn: (row) => Number(row.attributes.price_change_percentage.m15),
+      id: "price_change_15m",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            15m%
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const changeValue = row.getValue("price_change_15m") as number
+        const changeColor = changeValue >= 0 ? 'text-green-500' : 'text-red-500'
+        const changeSign = changeValue >= 0 ? '+' : ''
+        return (
+          <span className={`text-sm font-medium ${changeColor}`}>
+            {changeSign}{changeValue}%
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => Number(row.attributes.price_change_percentage.h1),
+      id: "price_change_1h",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            1h%
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const changeValue = row.getValue("price_change_1h") as number
+        const changeColor = changeValue >= 0 ? 'text-green-500' : 'text-red-500'
+        const changeSign = changeValue >= 0 ? '+' : ''
+        return (
+          <span className={`text-sm font-medium ${changeColor}`}>
+            {changeSign}{changeValue}%
+          </span>
+        )
+      },
+    },
+    {
+      accessorKey: "buy",
+      header: "",
+      cell: ({ row }) => {
         return (
           <div onClick={(e) => e.stopPropagation()}>
-            <Button className="bg-gray-500 text-white hover:bg-primary cursor-pointer">
+            <Button>
               <CloudLightningIcon className="w-4 h-4" />
               {amount ? `${amount} ${selectedChain.toUpperCase()}` : 'Buy'}
             </Button>
           </div>
         )
-
-      default:
-        return <>{value}</>
-    }
-  }
+      },
+    },
+  ]
 
   useEffect(() => {
     const fetchTrendingPools = async () => {
@@ -186,9 +314,11 @@ export default function Dashboard() {
     fetchTrendingPools()
   }, [selectedChain])
 
-  const handleRowClick = (row: GeckoTerminalTrendingPool) => {
+  const handleRowClick = (row: KunaiTrendingPool) => {
     const address = row.relationships.base_token.data.id.split('_')[1]
-    navigate(`/eth/token/${address}`)
+    navigate(`/eth/token/${address}`, {
+      state: { pool: row.attributes.address }
+    })
   }
 
   return (
@@ -197,17 +327,15 @@ export default function Dashboard() {
         <div className="flex items-center gap-4">
           <span className="text-xl font-bold">Trending</span>
           {/* Duration Button Group */}
-          <div className="flex items-center gap-1 bg-muted rounded p-0.5">
-            {durations.map((dur) => (
-              <div
-                key={dur.value}
-                onClick={() => setDuration(dur.value)}
-                className={cn("px-2 py-1 text-sm font-medium cursor-pointer rounded", duration === dur.value && "bg-white/20")}
-              >
-                {dur.label}
-              </div>
-            ))}
-          </div>
+          <ButtonGroup
+            buttons={durations.map((d) => ({
+              id: d.value,
+              component: <span className="text-sm font-medium">{d.label}</span>,
+              onClick: () => setDuration(d.value),
+            }))}
+            selectedButtons={[duration]}
+            className={cn("w-10 px-2 py-1 text-sm font-medium cursor-pointer rounded-sm")}
+          />
         </div>
         <div className='flex items-center gap-2'>
           <TokenBuy amount={amount} setAmount={setAmount} selectedChain={selectedChain} />
@@ -216,7 +344,7 @@ export default function Dashboard() {
       </div>
 
       <div className="flex-1 px-2 overflow-hidden">
-        <DataTable columns={columnsTrendingTable(duration)} data={trendingPools} renderCell={renderCell} onRowClick={handleRowClick} />
+        <DataTable columns={columnsTrendingTable(duration)} data={trendingPools} onRowClick={handleRowClick} />
       </div>
     </div>
   )

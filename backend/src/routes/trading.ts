@@ -117,4 +117,41 @@ router.delete(
   TradingController.deleteCopyTrading
 );
 
+// Execute Trade
+router.post(
+  '/execute',
+  authenticateToken,
+  [
+    body('tokenAddress')
+      .isEthereumAddress()
+      .withMessage('Valid token address required'),
+    body('amount')
+      .isFloat({ min: 0.000001 })
+      .withMessage('Amount must be greater than 0'),
+    body('isBuy')
+      .isBoolean()
+      .withMessage('isBuy must be a boolean'),
+    body('slippageTolerance')
+      .optional()
+      .isInt({ min: 1, max: 1000 })
+      .withMessage('Slippage tolerance must be between 1 and 1000 basis points'),
+    body('deadline')
+      .optional()
+      .isInt({ min: 60, max: 3600 })
+      .withMessage('Deadline must be between 60 and 3600 seconds'),
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request data',
+        errors: errors.array(),
+      });
+    }
+    next();
+  },
+  TradingController.executeTrade
+);
+
 export default router;

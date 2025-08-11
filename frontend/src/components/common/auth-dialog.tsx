@@ -10,11 +10,12 @@ import { useAuth } from "@/store/hooks"
 import {
   useConnectModal,
 } from '@rainbow-me/rainbowkit';
-import { ArrowRight } from "lucide-react";
+import { ArrowLeftIcon, ArrowRight, Icon, Wallet2Icon, WalletIcon } from "lucide-react";
 import { useState } from "react"
-import Input from "./input"
+import Input from "@/components/common/input"
 import { authAPI } from "@/services/api"
 import { toast } from "sonner"
+import { InputOTP, InputOTPSeparator, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 
 const AuthDialog: React.FC = () => {
   const { isAuthDlgOpen, showAuthDlg, login } = useAuth()
@@ -148,7 +149,13 @@ const AuthDialog: React.FC = () => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {isVerificationSent ? 'Verify Your Email' : (isSignUp ? 'Sign Up' : 'Sign In')}
+            {isVerificationSent ? 
+              <div className="flex items-center gap-2">
+                <ArrowLeftIcon className="size-4" onClick={goBackToEmail} />
+                Verify Your Email
+              </div>
+              :
+              isSignUp ? 'Sign Up' : 'Sign In'}
           </DialogTitle>
           <DialogDescription>
             {isVerificationSent ? (
@@ -160,22 +167,22 @@ const AuthDialog: React.FC = () => {
                 {isSignUp ? (
                   <>
                     Already have an account?{' '}
-                    <button
+                    <span
                       onClick={toggleView}
-                      className="text-primary hover:underline"
+                      className="cursor-pointer text-white underline"
                     >
                       Sign in
-                    </button>
+                    </span>
                   </>
                 ) : (
                   <>
                     Don't have an account yet?{' '}
-                    <button
+                    <span
                       onClick={toggleView}
-                      className="text-primary hover:underline"
+                      className="cursor-pointer text-white underline"
                     >
                       Sign up
-                    </button>
+                    </span>
                   </>
                 )}
               </>
@@ -217,51 +224,45 @@ const AuthDialog: React.FC = () => {
                 />
               </div>}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Sending...' : (isSignUp ? 'Sign Up' : 'Sign In')}
               </Button>
             </form>
           ) : (
             // Verification code form
-            <form onSubmit={handleVerifyCode} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="verificationCode" className="text-sm font-medium">
-                  Verification Code
-                </label>
-                <Input
-                  id="verificationCode"
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={formData.verificationCode}
-                  onChange={(e) => handleInputChange('verificationCode', e.target.value)}
+            <form onSubmit={handleVerifyCode} className="flex flex-col gap-4">
+              <div className="flex justify-center my-4">
+                <InputOTP
                   maxLength={6}
-                  required
-                />
+                  value={formData.verificationCode}
+                  onChange={(value) => handleInputChange('verificationCode', value)}
+                  pattern="^[0-9]+$"
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} className="size-12 text-lg" />
+                    <InputOTPSlot index={1} className="size-12 text-lg" />
+                    <InputOTPSlot index={2} className="size-12 text-lg" />
+                    <InputOTPSlot index={3} className="size-12 text-lg" />
+                    <InputOTPSlot index={4} className="size-12 text-lg" />
+                    <InputOTPSlot index={5} className="size-12 text-lg" />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
 
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={isLoading}>
-                  {isLoading ? 'Verifying...' : 'Verify Code'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={goBackToEmail}
-                  disabled={isLoading}
-                >
-                  Back
-                </Button>
-              </div>
+              <Button type="submit" variant="primary" disabled={isLoading}>
+                {isLoading ? 'Verifying...' : 'Verify Code'}
+              </Button>
 
               <div className="text-center">
-                <button
+                <Button
                   type="button"
+                  variant="link"
                   onClick={handleResendCode}
                   disabled={isLoading}
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-white"
                 >
                   Didn't receive code? Resend
-                </button>
+                </Button>
               </div>
             </form>
           )}
@@ -278,28 +279,32 @@ const AuthDialog: React.FC = () => {
             </div>
           </div>
 
-          {/* Telegram Login */}
-          <div className="flex justify-center">
-            <a
-              href={`https://t.me/KunaiSniper_bot?start=login${formData.inviteCode ? `_refCode=${formData.inviteCode}` : ''}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              {/* <img src="/icon/telegram.svg" alt="Telegram" className="w-4 h-4" /> */}
-              Login with Telegram
-            </a>
-          </div>
-
-          {/* Wallet Connect */}
-          <div className="flex justify-center mt-4">
-            <div
-              onClick={handleConnectWallet}
-              className="flex items-center gap-1 cursor-pointer"
-            >
-              Connect Wallet
-              <ArrowRight className="w-4 h-4" />
+          <div className="flex justify-around">
+            {/* Telegram Login */}
+            <div className="flex flex-col items-center gap-2">
+              <Button
+                className="size-16 flex justify-center rounded-full"
+                onClick={() => {
+                  window.open(`https://t.me/KunaiSniper_bot?start=login${formData.inviteCode ? `_refCode=${formData.inviteCode}` : ''}`, '_blank')
+                }}
+              >
+                <img src="/icon/telegram.svg" alt="Telegram" className="size-12" />
+              </Button>
+              <span className="text-sm text-muted-foreground">Telegram</span>
             </div>
+
+            {/* Wallet Connect */}
+            {!isSignUp && (
+              <div className="flex flex-col items-center gap-2">
+                <Button
+                  className="size-16 flex justify-center rounded-full"
+                  onClick={handleConnectWallet}
+                >
+                  <WalletIcon className="size-8" />
+                </Button>
+                <span className="text-sm text-muted-foreground">Wallet</span>
+              </div>
+            )}
           </div>
 
           {/* Terms and Privacy */}

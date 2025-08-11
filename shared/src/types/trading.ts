@@ -101,4 +101,46 @@ export interface MarketData {
   liquidity: number
   holders: number
   timestamp: Date
-} 
+}
+
+export interface MoralisTokenSwap {
+  transactionHash: string
+  transactionIndex: number
+  transactionType: string
+  baseQuotePrice: string
+  entity: string
+  entityLogo: string
+  blockTimestamp: string
+  blockNumber: string
+  subCategory: string
+  walletAddress: string
+  walletAddressLabel: string
+  pairAddress: string
+  pairLabel: string
+  exchangeName: string
+  exchangeAddress: string
+  exchangeLogo: string
+  baseToken: string
+  quoteToken: string
+  bought: {
+    address: string
+    amount: string
+    usdPrice: number
+    usdAmount: number
+    symbol: string
+    logo: string
+    name: string
+    tokenType: string
+  },
+  sold: {
+    address: string
+    amount: string
+    usdPrice: number
+    usdAmount: number
+    symbol: string
+    logo: string
+    name: string
+    tokenType: string
+  },
+  totalValueUsd: number
+}

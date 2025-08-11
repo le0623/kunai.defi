@@ -141,6 +141,44 @@ export class WalletService {
   }
 
   /**
+   * Get current user's in-app wallet balance
+   */
+  static async getCurrentUserWalletBalance(userId: string): Promise<{
+    eth: string;
+    address: string;
+  }> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          inAppWallet: true,
+        },
+      });
+
+      if (!user || !user.inAppWallet) {
+        return {
+          eth: '0.0',
+          address: '',
+        };
+      }
+
+      // Get the wallet balance using the existing method
+      const balance = await this.getWalletBalance(user.inAppWallet.address);
+
+      return {
+        eth: balance.eth,
+        address: user.inAppWallet.address,
+      };
+    } catch (error) {
+      logger.error(`Error getting current user wallet balance for ${userId}:`, error);
+      return {
+        eth: '0.0',
+        address: '',
+      };
+    }
+  }
+
+  /**
    * Execute a trade using the in-app wallet
    */
   static async executeTrade(

@@ -1,6 +1,6 @@
 import api from '@/lib/axios'
 import { storageService } from '@/services/localstorage'
-import type { GeckoTerminalTrendingPool, PoolRequest } from '@kunai/shared'
+import type { GeckoTerminalTrendingPool, KunaiTrendingPool, MoralisTokenMetadata, MoralisTokenSwap, PoolRequest, TokenSecurityInfo } from '@kunai/shared'
 import { AxiosError } from 'axios'
 
 // Authentication API calls
@@ -96,6 +96,12 @@ export const walletAPI = {
       address,
       label,
     })
+    return response.data
+  },
+
+  // Get current user's in-app wallet balance
+  getCurrentUserWalletBalance: async () => {
+    const response = await api.get('/api/wallet/my-balance')
     return response.data
   },
 
@@ -212,11 +218,17 @@ export const poolsAPI = {
     return response.data
   },
 
+  // Get pool by token address
+  getPoolByTokenAddress: async (tokenAddress: string) => {
+    const response = await api.get(`/api/pools/token/${tokenAddress}`)
+    return response.data
+  },
+
   // Get trending pools
-  getTrendingPools: async (chain: string): Promise<GeckoTerminalTrendingPool[]> => {
+  getTrendingPools: async (chain: string): Promise<KunaiTrendingPool[]> => {
     const response = await api.get(`/api/pools/trending?chain=${chain}`)
     if (response.data.success) {
-      return response.data.data as GeckoTerminalTrendingPool[]
+      return response.data.data as KunaiTrendingPool[]
     }
     return []
   },
@@ -290,6 +302,22 @@ export const tokenAPI = {
   getTokenInfo: async (chain: string, address: string) => {
     const response = await api.get(`/api/token/${chain}/${address}`)
     return response.data
+  },
+
+  // Get token swaps by token address
+  getTokenSwaps: async (chain: string, address: string): Promise<MoralisTokenSwap[]> => {
+    const response = await api.get(`/api/token/${chain}/${address}/swaps`)
+    const {success, data} = response.data
+    if (success) {
+      return data.result
+    }
+    return []
+  },
+
+  // Get token security
+  getTokenSecurity: async (chain: string, address: string): Promise<TokenSecurityInfo> => {
+    const response = await api.get(`/api/token/${chain}/${address}/security`)
+    return response.data.data
   },
 
   // Get token price only

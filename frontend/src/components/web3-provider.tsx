@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { darkTheme, RainbowKitAuthenticationProvider, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { createAuthenticationAdapter } from '@rainbow-me/rainbowkit';
 import { createSiweMessage } from 'viem/siwe';
-import { useAccount, useDisconnect } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { authAPI } from '@/services/api';
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -36,8 +36,7 @@ const authenticationAdapter = createAuthenticationAdapter({
 
 function AuthenticationProvider({ children }: { children: React.ReactNode }) {
   const { isConnected, address } = useAccount();
-  const { disconnect } = useDisconnect();
-  const [authStatus, setAuthStatus] = React.useState<"loading" | "unauthenticated" | "authenticated">("loading");
+  const [authStatus, setAuthStatus] = React.useState<"loading" | "unauthenticated" | "authenticated">("unauthenticated");
 
   React.useEffect(() => {
     const checkAuthStatus = async () => {
@@ -45,18 +44,9 @@ function AuthenticationProvider({ children }: { children: React.ReactNode }) {
         setAuthStatus("unauthenticated");
         return;
       }
-
-      try {
-        const isAuthenticated = await authAPI.checkAuth();
-        setAuthStatus(isAuthenticated ? "authenticated" : "unauthenticated");
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        disconnect();
-        setAuthStatus("unauthenticated");
-      }
     };
 
-    checkAuthStatus();
+    // checkAuthStatus();
   }, [isConnected, address]);
 
   return (

@@ -7,6 +7,7 @@ export interface User {
   email: string | null
   address: string | null
   inAppWalletId: string | null
+  inAppWallet: string | null
   createdAt: string
   updatedAt: string
 }
@@ -36,15 +37,18 @@ export const checkAuthStatus = createAsyncThunk(
     try {
       const token = storageService.getItem('authToken')
       if (!token) {
-        return { isAuthenticated: false, token: null }
+        return { isAuthenticated: false, token: null, user: null }
       }
       
-      // For now, just return the token exists
-      // Uncomment the API call when ready to verify with backend
-      // const isValid = await authAPI.checkAuth()
-      // return { isAuthenticated: isValid, token: isValid ? token : null }
-      
-      return { isAuthenticated: true, token }
+      // Verify token and get user data
+      try {
+        const user = await authAPI.getCurrentUser()
+        return { isAuthenticated: true, token, user }
+      } catch (error) {
+        // Token is invalid, clear it
+        storageService.removeItem('authToken')
+        return { isAuthenticated: false, token: null, user: null }
+      }
     } catch (error: any) {
       return rejectWithValue(error.message || 'Auth check failed')
     }
@@ -138,6 +142,7 @@ const authSlice = createSlice({
         state.isLoading = false
         state.isAuthenticated = action.payload.isAuthenticated
         state.token = action.payload.token
+        state.user = action.payload.user
       })
       .addCase(checkAuthStatus.rejected, (state, action) => {
         state.isLoading = false

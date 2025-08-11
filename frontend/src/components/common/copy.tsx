@@ -15,9 +15,9 @@ const CopyIcon = ({ clipboardText }: { clipboardText?: string | null }) => {
   }
 
   return copied ? (
-    <Check className="h-3 w-3 text-green-600" onClick={handleCopyAddress} />
+    <Check className="h-4 w-4" onClick={handleCopyAddress} />
   ) : (
-    <Copy className="hover:text-foreground text-muted-foreground w-3 h-3 cursor-pointer" onClick={handleCopyAddress} />
+    <Copy className="hover:text-foreground text-muted-foreground w-4 h-4 cursor-pointer" onClick={handleCopyAddress} />
   )
 }
 

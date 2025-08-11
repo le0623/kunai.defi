@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { CloudLightningIcon, RefreshCw, SearchIcon, StarIcon } from 'lucide-react'
+import { CloudLightningIcon, RefreshCw, SearchIcon, StarIcon, ArrowUp, ArrowDown } from 'lucide-react'
 import { DataTable } from '@/components/table/data-table'
-import { createColumns, type Token } from '@/components/table/columns'
 import { poolsAPI } from '@/services/api'
 import type { Pool } from '@kunai/shared'
 import CopyIcon from '@/components/common/copy'
@@ -11,6 +10,34 @@ import { cn, formatAge, formatNumber, getValueColor, formatPrice } from '@/lib/u
 import Presets from '@/components/common/presets'
 import TokenBuy from '@/components/common/token-buy'
 import { useAppSelector } from '@/store/hooks'
+import { type Column, type ColumnDef } from '@tanstack/react-table'
+import { TooltipImage } from '@/components/common/tooltip-image'
+import ButtonGroup from '@/components/common/button-group'
+
+// Define Token type
+export type Token = {
+  id: string
+  link: string
+  token: {
+    symbol: string
+    address: string
+    logo?: string
+  }
+  age: number
+  initial: number
+  mc: number
+  holders: number
+  tx: {
+    buys: number
+    sells: number
+  }
+  vol: number
+  price: number
+  change5m: number
+  change1h: number
+  change6h: number
+  buy: string
+}
 
 // Transform pool data to Token format
 const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
@@ -68,7 +95,7 @@ const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
     token: {
       symbol: pool.token0.symbol,
       address: pool.token0.address,
-      logo: pool.token0.logo,
+      logo: pool.token0.imageUrl,
     },
     age: pool.age,
     initial: pool.dexViewData?.liquidity.quote || 0,
@@ -102,8 +129,298 @@ const NewPair = () => {
   const [amount, setAmount] = useState<number>(0)
   const { selectedChain } = useAppSelector((state) => state.other)
 
+  // Helper function to render sorting arrow
+  const renderSortArrow = (column: Column<Token>) => {
+    const isSorted = column.getIsSorted()
+    const onClick = () => column.toggleSorting(column.getIsSorted() === "asc")
+    if (isSorted === "asc") return <ArrowUp className="h-4 w-4 cursor-pointer" onClick={onClick} />
+    if (isSorted === "desc") return <ArrowDown className="h-4 w-4 cursor-pointer" onClick={onClick} />
+    return <ArrowDown className="h-4 w-4 text-muted-foreground cursor-pointer" onClick={() => column.toggleSorting(true)} />
+  }
+
   // Create dynamic columns based on selected duration
-  const columns = createColumns(selectedDuration)
+  const columns = (duration: string = '1h'): ColumnDef<Token>[] => [
+    {
+      accessorKey: "token",
+      header: "Token",
+      cell: ({ row }) => {
+        const token = row.original.token
+        
+        return (
+          <div className="flex items-center gap-2">
+            <StarIcon
+              className="w-4 h-4 text-muted-foreground hover:text-white"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="relative">
+              {token.logo ? (
+                <TooltipImage
+                  src={token.logo}
+                  alt={token.symbol}
+                  size={64}
+                  tooltipSize={256}
+                  className="rounded-full"
+                  tooltipClassName="rounded-lg"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-black border border-gray-500 rounded-full flex items-center justify-center">
+                  <span className="text-lg font-medium">{token.symbol.slice(0, 2)}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium">{token.symbol}</span>
+                <Link to={`https://x.com/search?q=($${token.symbol} OR ${token.address})&src=typed_query&f=live`} target="_blank" className="cursor-pointer">
+                  <SearchIcon className="w-4 h-4 text-muted-foreground hover:text-white"/>
+                </Link>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">{token.address.slice(0, 6)}...{token.address.slice(-4)}</span>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <CopyIcon clipboardText={token.address} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.age,
+      id: "age",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            Age
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const ageValue = row.getValue("age") as number
+        const ageData = formatAge(ageValue)
+        return (
+          <span className={`text-sm font-medium ${ageData.color}`}>
+            {ageData.formatted}
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.initial,
+      id: "initial",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            Liq/initial
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const initialValue = row.getValue("initial") as number
+        const initialFormatted = formatNumber(initialValue)
+        return (
+          <span className="text-sm font-medium">WETH {initialFormatted}</span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.mc,
+      id: "mc",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            MC
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const mcValue = row.getValue("mc") as number
+        if (mcValue === 0) return <span className="text-sm text-gray-500">N/A</span>
+        const mcFormatted = formatNumber(mcValue)
+        const mcColor = getValueColor(mcValue, 'mc')
+        return (
+          <span className={`text-sm font-medium ${mcColor}`}>
+            ${mcFormatted}
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.holders,
+      id: "holders",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            Holders
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const holdersValue = row.getValue("holders") as number
+        const holdersFormatted = formatNumber(holdersValue)
+        const holdersColor = holdersValue < 1000 ? 'text-gray-500' : 'text-white'
+        return (
+          <span className={`text-sm font-medium ${holdersColor}`}>
+            {holdersFormatted}
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.tx.buys + row.tx.sells,
+      id: "tx",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            {duration} TXs
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const tx = row.original.tx
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-sm font-medium">{tx.buys + tx.sells}</span>
+            <div>
+              <span className="text-sm font-medium text-green-300">{tx.buys}</span>
+              <span className="text-sm font-medium text-gray-500">/</span>
+              <span className="text-sm font-medium text-red-300">{tx.sells}</span>
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.vol,
+      id: "vol",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            {duration} Vol
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const volValue = row.getValue("vol") as number
+        if (volValue === 0) return <span className="text-sm text-gray-500">N/A</span>
+        const volFormatted = formatNumber(volValue)
+        const volColor = getValueColor(volValue, 'vol')
+        return (
+          <span className={`text-sm font-medium ${volColor}`}>
+            ${volFormatted}
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.price,
+      id: "price",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            Price
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const priceValue = row.getValue("price") as number
+        const priceFormatted = formatPrice(priceValue)
+        return (
+          <span className="text-sm font-mono font-medium">
+            {priceFormatted}
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.change5m,
+      id: "change5m",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            5m%
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const changeValue = row.getValue("change5m") as number
+        const changeColor = changeValue >= 0 ? 'text-green-300' : 'text-red-300'
+        const changeSign = changeValue >= 0 ? '+' : ''
+        return (
+          <span className={`text-sm font-medium ${changeColor}`}>
+            {changeSign}{Number(changeValue).toPrecision(2)}%
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.change1h,
+      id: "change1h",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            1h%
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const changeValue = row.getValue("change1h") as number
+        const changeColor = changeValue >= 0 ? 'text-green-300' : 'text-red-300'
+        const changeSign = changeValue >= 0 ? '+' : ''
+        return (
+          <span className={`text-sm font-medium ${changeColor}`}>
+            {changeSign}{Number(changeValue).toPrecision(2)}%
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.change6h,
+      id: "change6h",
+      header: ({ column }) => {
+        return (
+          <div className="flex items-center gap-1">
+            6h%
+            {renderSortArrow(column)}
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const changeValue = row.getValue("change6h") as number
+        const changeColor = changeValue >= 0 ? 'text-green-300' : 'text-red-300'
+        const changeSign = changeValue >= 0 ? '+' : ''
+        return (
+          <span className={`text-sm font-medium ${changeColor}`}>
+            {changeSign}{Number(changeValue).toPrecision(2)}%
+          </span>
+        )
+      },
+    },
+    {
+      accessorKey: "buy",
+      header: "",
+      cell: ({ row }) => {
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Button>
+              <CloudLightningIcon className="w-4 h-4" />
+              Buy
+            </Button>
+          </div>
+        )
+      },
+    },
+  ]
 
   // Transform pools to tokens for table display
   const tokens = pools.map(pool => transformPoolToToken(pool, selectedDuration));
@@ -186,160 +503,7 @@ const NewPair = () => {
     { value: '24h', label: '24h' },
   ]
 
-  const renderCell = (value: any, row: Token, columnId: string) => {
-    switch (columnId) {
-      case 'token':
-        return (
-          <div className="flex items-center gap-2">
-            <StarIcon
-              className="w-4 h-4 text-muted-foreground hover:text-white"
-              onClick={(e) => e.stopPropagation()}
-            />
-            {row.token.logo ?
-              <img src={row.token.logo} alt={row.token.symbol} className="w-16 h-16 rounded-full" /> :
-              <div className="w-16 h-16 bg-black border border-gray-500 rounded-full flex items-center justify-center">
-                <span className="text-lg font-medium">{row.token.symbol.slice(0, 2)}</span>
-              </div>
-            }
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium">{row.token.symbol}</span>
-                <Link to={`https://x.com/search?q=($${row.token.symbol} OR ${row.token.address})&src=typed_query&f=live`} target="_blank" className="cursor-pointer">
-                  <SearchIcon className="w-3 h-3 text-muted-foreground hover:text-white"/>
-                </Link>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground">{row.token.address.slice(0, 6)}...{row.token.address.slice(-4)}</span>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <CopyIcon clipboardText={row.token.address} />
-                </div>
-              </div>
-            </div>
-          </div>
-        )
 
-      case 'age':
-        // Ensure value is a valid number
-        const ageValue = typeof value === 'number' && !isNaN(value) ? value : 0
-        const ageData = formatAge(ageValue)
-        return (
-          <span className={`text-sm font-medium ${ageData.color}`}>
-            {ageData.formatted}
-          </span>
-        )
-      
-      case 'initial':
-        const initialValue = value as number;
-        const initialFormatted = formatNumber(initialValue)
-        return (
-          <span className="text-sm font-medium">WETH {initialFormatted}</span>
-        )
-
-      case 'mc':
-        // Ensure value is a valid number
-        const mcValue = typeof value === 'number' && !isNaN(value) ? value : 0
-        if (mcValue === 0) return <span className="text-sm text-gray-500">N/A</span>
-        const mcFormatted = formatNumber(mcValue)
-        const mcColor = getValueColor(mcValue, 'mc')
-        return (
-          <span className={`text-sm font-medium ${mcColor}`}>
-            ${mcFormatted}
-          </span>
-        )
-
-      case 'vol':
-        // Ensure value is a valid number
-        const volValue = value as number;
-        if (volValue === 0) return <span className="text-sm text-gray-500">N/A</span>
-        const volFormatted = formatNumber(volValue)
-        const volColor = getValueColor(volValue, 'vol')
-        return (
-          <span className={`text-sm font-medium ${volColor}`}>
-            ${volFormatted}
-          </span>
-        )
-
-      case 'holders':
-        // Ensure value is a valid number
-        const holdersValue = value as number;
-        const holdersFormatted = formatNumber(holdersValue)
-        const holdersColor = holdersValue < 1000 ? 'text-gray-500' : 'text-white'
-        return (
-          <span className={`text-sm font-medium ${holdersColor}`}>
-            {holdersFormatted}
-          </span>
-        )
-
-      case 'price':
-        // Ensure value is a valid number
-        const priceValue = value as number;
-        const priceFormatted = formatPrice(priceValue)
-        return (
-          <span className="text-sm font-mono font-medium">
-            {priceFormatted}
-          </span>
-        )
-
-      case 'change5m':
-      case 'change1h':
-      case 'change6h':
-        // Ensure value is a valid number
-        const changeValue = value as number;
-        const changeColor = changeValue >= 0 ? 'text-green-500' : 'text-red-500'
-        const changeSign = changeValue >= 0 ? '+' : ''
-        return (
-          <span className={`text-sm font-medium ${changeColor}`}>
-            {changeSign}{Number(changeValue).toPrecision(2)}%
-          </span>
-        )
-
-      case 'tx':
-        return (
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-sm font-medium">{row.tx.buys + row.tx.sells}</span>
-            <div>
-              <span className="text-sm font-medium text-green-500">{row.tx.buys}</span>
-              <span className="text-sm font-medium text-gray-500">/</span>
-              <span className="text-sm font-medium text-red-500">{row.tx.sells}</span>
-            </div>
-          </div>
-        )
-
-      // case 'degenAudit':
-      //   return (
-      //     <div className="flex items-center gap-2">
-      //       <span className="text-sm font-medium">{row.degenAudit.isHoneypot ? '🚨 Honeypot' : '✅ Verified'}</span>
-      //       <span className="text-sm font-medium">{row.degenAudit.isOpenSource ? '✅ Open Source' : '❌ Closed Source'}</span>
-      //     </div>
-      //   )
-
-      // case 'taxes':
-      //   const buyTax = row.taxes.buy
-      //   const sellTax = row.taxes.sell
-      //   const buyColor = buyTax > 5 ? 'text-yellow-500' : 'text-sm font-medium'
-      //   const sellColor = sellTax > 5 ? 'text-yellow-500' : 'text-sm font-medium'
-      //   return (
-      //     <div>
-      //       <span className={`text-sm font-medium ${buyColor}`}>{buyTax}%</span>
-      //       <span className="text-sm font-medium text-gray-500">/</span>
-      //       <span className={`text-sm font-medium ${sellColor}`}>{sellTax}%</span>
-      //     </div>
-      //   )
-
-      case 'buy':
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Button className="bg-gray-500 text-white hover:bg-primary cursor-pointer">
-              <CloudLightningIcon className="w-4 h-4" />
-              Buy
-            </Button>
-          </div>
-        )
-
-      default:
-        return <>{value}</>
-    }
-  }
 
   return (
     <div className="h-full flex flex-col">
@@ -347,21 +511,19 @@ const NewPair = () => {
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold">New Pairs</span>
           {/* Duration Button Group */}
-          <div className="flex items-center gap-1 bg-accent rounded-xs p-0.5">
-            {durations.map((duration) => (
-              <div
-                key={duration.value}
-                onClick={() => handleDurationChange(duration.value)}
-                className={cn("px-2 py-1 text-xs font-medium cursor-pointer rounded-xs", selectedDuration === duration.value && "bg-white/10")}
-              >
-                {duration.label}
-              </div>
-            ))}
-          </div>
+          <ButtonGroup
+            buttons={durations.map((d) => ({
+              id: d.value,
+              component: <span className="text-sm font-medium">{d.label}</span>,
+              onClick: () => handleDurationChange(d.value),
+            }))}
+            selectedButtons={[selectedDuration]}
+            className={cn("w-12 px-2 py-1 text-sm font-medium cursor-pointer rounded-sm")}
+          />
 
           {/* Status indicator */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className={`w-2 h-2 rounded-full ${isWindowFocused ? 'bg-green-500' : 'bg-gray-400'}`} />
+            <div className={`w-2 h-2 rounded-full ${isWindowFocused ? 'bg-green-300' : 'bg-gray-400'}`} />
             <span>{isWindowFocused ? 'Live' : 'Paused'}</span>
             {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
           </div>
@@ -383,9 +545,8 @@ const NewPair = () => {
 
       <div className="flex-1 px-2 pb-2 overflow-hidden">
         <DataTable
-          columns={columns}
+          columns={columns(selectedDuration)}
           data={tokens}
-          renderCell={renderCell}
           onRowClick={handleRowClick}
         />
       </div>

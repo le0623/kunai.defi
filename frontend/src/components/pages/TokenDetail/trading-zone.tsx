@@ -1,23 +1,59 @@
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { TrendingUp, TrendingDown } from "lucide-react"
+import { TrendingUp, TrendingDown, Wallet } from "lucide-react"
 import type { TokenInfo } from "@kunai/shared"
 import { formatPrice, formatNumber } from "@/lib/utils"
 import { Trade } from "./trade"
+import { useAuth } from '@/store/hooks'
+import { useAccount } from 'wagmi'
+import { tradingService } from '@/services/tradingService'
+import { TokenSecurity } from "./token-security"
+import { Separator } from "@/components/ui/separator"
 
 export const TradingZone = ({ token }: { token: TokenInfo }) => {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
-  const [buyAmount, setBuyAmount] = useState('')
-  const [sellAmount, setSellAmount] = useState('')
+  const [tokenBalance, setTokenBalance] = useState('0')
+  const [ethBalance, setEthBalance] = useState('0')
 
-  const handlePreset = (preset: 'p1' | 'p2' | 'p3') => {
-    if (preset === 'p1') {
-      setBuyAmount('100')
+  const { isAuthenticated } = useAuth()
+  const { address: externalWalletAddress, isConnected } = useAccount()
+
+  // Load balances
+  useEffect(() => {
+    const loadBalances = async () => {
+      if (!isAuthenticated) return
+
+      try {
+        if (isConnected && externalWalletAddress) {
+          // External wallet balances
+          const ethBal = await tradingService.getEthBalance(externalWalletAddress)
+          const tokenBal = await tradingService.getTokenBalance(token.address, externalWalletAddress)
+          setEthBalance(ethBal)
+          setTokenBalance(tokenBal)
+        } else {
+          // In-app wallet balances
+          const user = await import('@/services/api').then(m => m.authAPI.getCurrentUser())
+          const ethBal = await tradingService.getEthBalance(user.inAppWallet)
+          const tokenBal = await tradingService.getTokenBalance(token.address, user.inAppWallet)
+          setEthBalance(ethBal)
+          setTokenBalance(tokenBal)
+        }
+      } catch (error) {
+        console.error('Error loading balances:', error)
+      }
     }
+
+    loadBalances()
+  }, [isAuthenticated, isConnected, externalWalletAddress, token.address])
+
+  // Handle balance updates from trading
+  const handleBalanceUpdate = (balances: { ethBalance: string; tokenBalance: string }) => {
+    setEthBalance(balances.ethBalance)
+    setTokenBalance(balances.tokenBalance)
   }
 
   return (
@@ -31,12 +67,15 @@ export const TradingZone = ({ token }: { token: TokenInfo }) => {
         {leftPanelCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
       </Button>
 
-
       {!leftPanelCollapsed && (
-        <div className="h-full overflow-y-auto p-4">
-          <div className="space-y-6">
-            <Trade />
-          </div>
+        <div className="h-full overflow-y-auto">
+          <Trade
+            tokenAddress={token.address}
+            tokenSymbol={token.symbol}
+            onBalanceUpdate={handleBalanceUpdate}
+          />
+          <Separator />
+          <TokenSecurity />
         </div>
       )}
     </div>

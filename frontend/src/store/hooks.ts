@@ -8,11 +8,15 @@ import {
   login,
   type User 
 } from './slices/authSlice'
+import { 
+  initializePriceFeed, 
+  disconnectPriceFeed,
+} from './slices/priceSlice'
 import { useStorageListener } from '@/services/localstorage'
 
 // Use throughout your app instead of plain `useDispatch` and `useSelector`
 export const useAppDispatch: () => AppDispatch = useDispatch
-export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector 
 
 // Custom hook to replace useAuth from context
 export const useAuth = () => {
@@ -27,7 +31,11 @@ export const useAuth = () => {
   // Listen for auth token changes (same tab and other tabs)
   useStorageListener('authToken', (newValue, oldValue) => {
     console.log('Auth token changed:', { newValue, oldValue })
-    dispatch(checkAuthStatus())
+    // Only check auth status if token was removed (logout) or if we don't have a current token
+    // This prevents interference with external wallet authentication
+    if (!newValue || !auth.token) {
+      dispatch(checkAuthStatus())
+    }
   })
 
   return {
@@ -41,5 +49,33 @@ export const useAuth = () => {
     checkAuthStatus: () => dispatch(checkAuthStatus()),
     logout: () => dispatch(logout()),
     login: (token: string) => dispatch(login(token)),
+  }
+}
+
+// Custom hook for price data
+export const usePrice = () => {
+  const dispatch = useAppDispatch()
+  const price = useAppSelector((state) => state.price)
+  const selectedChain = useAppSelector((state) => state.other.selectedChain)
+
+  // Initialize price feed on mount and when selected chain changes
+  useEffect(() => {
+    dispatch(initializePriceFeed(selectedChain))
+    
+    // Cleanup on unmount
+    return () => {
+      dispatch(disconnectPriceFeed())
+    }
+  }, [dispatch, selectedChain])
+
+  return {
+    marketPrice: price.marketPrice,
+    selectedChain: price.selectedChain,
+    isLoading: price.isLoading,
+    error: price.error,
+    isConnected: price.isConnected,
+    lastUpdate: price.lastUpdate,
+    initializePriceFeed: (chain: 'eth' | 'sol') => dispatch(initializePriceFeed(chain)),
+    disconnectPriceFeed: () => dispatch(disconnectPriceFeed()),
   }
 } 

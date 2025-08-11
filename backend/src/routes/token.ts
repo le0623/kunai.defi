@@ -11,6 +11,20 @@ const router: Router = Router();
 router.get('/:chain/:address', TokenController.getTokenInfo);
 
 /**
+ * @route GET /api/token/:chain/:address/swaps
+ * @desc Get token swaps by token address
+ * @access Public
+ */
+router.get('/:chain/:address/swaps', TokenController.getTokenSwaps);
+
+/**
+ * @route GET /api/token/:chain/:address/security
+ * @desc Get token security from goplus
+ * @access Public
+ */
+router.get('/:chain/:address/security', TokenController.getTokenSecurity);
+
+/**
  * @route GET /api/token/:chain/:address/price
  * @desc Get token price only
  * @access Public

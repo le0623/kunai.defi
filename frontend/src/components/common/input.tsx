@@ -10,7 +10,7 @@ type InputProps = React.ComponentProps<typeof InputUI> & {
 
 const Input = ({ prefixComp, suffixComp, topClassName, ...props }: InputProps) => {
   return (
-    <div className={cn("flex items-center bg-muted rounded-sm justify-between", topClassName)}>
+    <div className={cn("flex items-center bg-input rounded-sm justify-between", topClassName)}>
       {prefixComp && (
         <div className="flex items-center bg-inherit text-muted-foreground text-sm">
           {prefixComp}

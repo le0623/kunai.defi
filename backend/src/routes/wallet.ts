@@ -8,6 +8,9 @@ const router: Router = Router();
 // Get user's in-app wallet
 router.get('/my-wallet', authenticateToken, WalletController.getUserWallet);
 
+// Get current user's wallet balance
+router.get('/my-balance', authenticateToken, WalletController.getCurrentUserWalletBalance);
+
 // Get wallet balance
 router.get(
   '/balance/:address',

@@ -6,6 +6,7 @@ import walletReducer from './slices/walletSlice'
 import poolsReducer from './slices/poolsSlice'
 import uiReducer from './slices/uiSlice'
 import presetsReducer from './slices/presetsSlice'
+import priceReducer from './slices/priceSlice'
 import otherReducer from './slices/otherSlice'
 
 // Configure persistence for the 'other' slice
@@ -25,11 +26,12 @@ const authPersistConfig = {
 // Combine reducers with persistence
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
-  wallet: walletReducer,
-  pools: poolsReducer,
-  ui: uiReducer,
-  presets: presetsReducer,
+    wallet: walletReducer,
+    pools: poolsReducer,
+    ui: uiReducer,
+    presets: presetsReducer,
   other: persistReducer(otherPersistConfig, otherReducer),
+  price: priceReducer,
 })
 
 export const store = configureStore({

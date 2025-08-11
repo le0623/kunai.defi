@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { createServer, Server } from 'http';
 import dotenv from 'dotenv';
+import Moralis from 'moralis';
 
 import { connectDatabase, disconnectDatabase } from '@/config/database';
 import { logger } from '@/utils/logger';
@@ -152,6 +153,11 @@ const startServer = async () => {
     } else {
       logger.warn('Email service not configured - SMTP credentials missing');
     }
+
+    // Initialize Moralis
+    await Moralis.start({
+      apiKey: process.env.MORALIS_API_KEY
+    });
 
     // Start server
     server.listen(PORT, () => {

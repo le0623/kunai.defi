@@ -11,6 +11,13 @@ const router: Router = Router();
 router.get('/', PoolController.getPools);
 
 /**
+ * @route GET /api/pools/token/:tokenAddress
+ * @desc Get pool by token address
+ * @access Private
+ */
+router.get('/token/:tokenAddress', PoolController.getPoolByTokenAddress);
+
+/**
  * @route GET /api/pools/trending/:chain
  * @desc Get trending pools
  * @access Private
