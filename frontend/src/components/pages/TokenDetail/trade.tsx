@@ -22,7 +22,7 @@ export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps
   const [ethBalance, setEthBalance] = useState('0')
   const [tokenBalance, setTokenBalance] = useState('0')
 
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, showAuthDlg } = useAuth()
   const { address: externalWalletAddress, isConnected } = useAccount()
   const { data: externalEthBalance } = useBalance({
     address: externalWalletAddress,
@@ -61,9 +61,9 @@ export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps
     loadBalances()
   }, [isAuthenticated, isConnected, externalWalletAddress, tokenAddress])
 
-  const handleBuy = async () => {
-    if (!isAuthenticated) {
-      toast.error('Please connect your wallet first')
+  const handleTrade = async () => {
+    if (!isAuthenticated && !isConnected) {
+      showAuthDlg(true)
       return
     }
 
@@ -78,7 +78,7 @@ export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps
         {
           tokenAddress,
           amount,
-          isBuy: true,
+          isBuy,
           slippageTolerance: 50, // 0.5%
           deadline: 300 // 5 minutes
         },
@@ -94,58 +94,17 @@ export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps
       )
 
       if (result.success) {
-        toast.success(`Successfully bought ${amount} ETH worth of ${tokenSymbol}`)
+        const action = isBuy ? 'bought' : 'sold'
+        const amountText = isBuy ? `${amount} ETH worth of ${tokenSymbol}` : `${amount} ${tokenSymbol}`
+        toast.success(`Successfully ${action} ${amountText}`)
       } else {
-        toast.error(result.error || 'Buy transaction failed')
+        const action = isBuy ? 'Buy' : 'Sell'
+        toast.error(result.error || `${action} transaction failed`)
       }
     } catch (error) {
-      console.error('Buy error:', error)
-      toast.error('Buy transaction failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSell = async () => {
-    if (!isAuthenticated) {
-      toast.error('Please connect your wallet first')
-      return
-    }
-
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Please enter a valid amount')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const result = await tradingService.executeTrade(
-        {
-          tokenAddress,
-          amount,
-          isBuy: false,
-          slippageTolerance: 50, // 0.5%
-          deadline: 300 // 5 minutes
-        },
-        walletType,
-        walletAddress,
-        (balances) => {
-          // Update balances in UI
-          setEthBalance(balances.ethBalance)
-          setTokenBalance(balances.tokenBalance)
-          // Notify parent component
-          onBalanceUpdate?.(balances)
-        }
-      )
-
-      if (result.success) {
-        toast.success(`Successfully sold ${amount} ${tokenSymbol}`)
-      } else {
-        toast.error(result.error || 'Sell transaction failed')
-      }
-    } catch (error) {
-      console.error('Sell error:', error)
-      toast.error('Sell transaction failed')
+      console.error(`${isBuy ? 'Buy' : 'Sell'} error:`, error)
+      const action = isBuy ? 'Buy' : 'Sell'
+      toast.error(`${action} transaction failed`)
     } finally {
       setLoading(false)
     }
@@ -242,18 +201,13 @@ export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps
       </div>
 
       <Button
-        disabled={!amount || loading || !isAuthenticated}
-        onClick={isBuy ? handleBuy : handleSell}
+        disabled={!amount || loading}
+        onClick={handleTrade}
+        variant="primary"
         className={isBuy ? 'bg-green-300 text-black' : 'bg-red-400 text-black'}
       >
         {loading ? 'Processing...' : (isBuy ? 'Buy' : 'Sell')}
       </Button>
-
-      {!isAuthenticated && (
-        <div className="text-xs text-yellow-400 text-center">
-          Please connect your wallet to trade
-        </div>
-      )}
     </div>
   )
 }

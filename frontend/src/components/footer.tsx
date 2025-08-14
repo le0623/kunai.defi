@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import { usePrice } from '@/store/hooks'
 import { Separator } from '@radix-ui/react-separator'
 import { Wallet, Eye, TrendingUp, Activity, DollarSign, Shield, BookOpen, Info, Bot, Code, Users, Trophy, Smartphone } from 'lucide-react'
+import { SocketIOStatus } from './SocketIOStatus'
 
 const FooterItem = ({ icon, label }: { icon: React.ReactNode, label: string }) => {
   return (
@@ -40,7 +41,7 @@ const Footer = () => {
         
       {/* Right Section - App & Resources */}
       <div className="flex items-center gap-1">
-        <FooterItem icon={<Shield className="w-3 h-3" />} label="Stable" />
+        <SocketIOStatus />
         <FooterItem icon={<BookOpen className="w-3 h-3" />} label="Tutorial" />
         <FooterItem icon={<Info className="w-3 h-3" />} label="About" />
         <FooterItem icon={<Bot className="w-3 h-3" />} label="Bot" />

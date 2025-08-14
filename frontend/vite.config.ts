@@ -31,6 +31,12 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL || 'https://api.kunai.trade',
           changeOrigin: true,
           secure: true,
+        },
+        '/socket.io': {
+          target: env.VITE_API_URL || 'https://api.kunai.trade',
+          changeOrigin: true,
+          secure: true,
+          ws: true,
         }
       },
       fs: {

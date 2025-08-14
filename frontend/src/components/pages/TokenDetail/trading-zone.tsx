@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react"
-import type { TokenInfo } from "@kunai/shared"
+import type { KunaiTokenInfo } from "@kunai/shared"
 import { formatPrice, formatNumber } from "@/lib/utils"
 import { Trade } from "./trade"
 import { useAuth } from '@/store/hooks'
@@ -14,7 +14,7 @@ import { tradingService } from '@/services/tradingService'
 import { TokenSecurity } from "./token-security"
 import { Separator } from "@/components/ui/separator"
 
-export const TradingZone = ({ token }: { token: TokenInfo }) => {
+export const TradingZone = ({ token }: { token: KunaiTokenInfo }) => {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
   const [tokenBalance, setTokenBalance] = useState('0')
   const [ethBalance, setEthBalance] = useState('0')
@@ -31,14 +31,14 @@ export const TradingZone = ({ token }: { token: TokenInfo }) => {
         if (isConnected && externalWalletAddress) {
           // External wallet balances
           const ethBal = await tradingService.getEthBalance(externalWalletAddress)
-          const tokenBal = await tradingService.getTokenBalance(token.address, externalWalletAddress)
+          const tokenBal = await tradingService.getTokenBalance(token.moralisToken.address, externalWalletAddress)
           setEthBalance(ethBal)
           setTokenBalance(tokenBal)
         } else {
           // In-app wallet balances
           const user = await import('@/services/api').then(m => m.authAPI.getCurrentUser())
           const ethBal = await tradingService.getEthBalance(user.inAppWallet)
-          const tokenBal = await tradingService.getTokenBalance(token.address, user.inAppWallet)
+          const tokenBal = await tradingService.getTokenBalance(token.moralisToken.address, user.inAppWallet)
           setEthBalance(ethBal)
           setTokenBalance(tokenBal)
         }
@@ -48,7 +48,7 @@ export const TradingZone = ({ token }: { token: TokenInfo }) => {
     }
 
     loadBalances()
-  }, [isAuthenticated, isConnected, externalWalletAddress, token.address])
+  }, [isAuthenticated, isConnected, externalWalletAddress, token.moralisToken.address])
 
   // Handle balance updates from trading
   const handleBalanceUpdate = (balances: { ethBalance: string; tokenBalance: string }) => {
@@ -70,8 +70,8 @@ export const TradingZone = ({ token }: { token: TokenInfo }) => {
       {!leftPanelCollapsed && (
         <div className="h-full overflow-y-auto">
           <Trade
-            tokenAddress={token.address}
-            tokenSymbol={token.symbol}
+            tokenAddress={token.moralisToken.address}
+            tokenSymbol={token.moralisToken.symbol}
             onBalanceUpdate={handleBalanceUpdate}
           />
           <Separator />

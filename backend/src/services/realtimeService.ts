@@ -11,7 +11,7 @@ import {
 import { logger } from '@/utils/logger';
 
 export class RealtimeService {
-  private static io: SocketIOServer;
+  public static io: SocketIOServer;
   private static web3: Web3;
   private static provider: ethers.JsonRpcProvider;
   private static isMonitoring = false;
@@ -36,10 +36,10 @@ export class RealtimeService {
     this.io.on('connection', socket => {
       logger.info(`Client connected: ${socket.id}`);
 
-      // Join user to their personal room
-      socket.on('join-user', (userAddress: string) => {
-        socket.join(`user-${userAddress.toLowerCase()}`);
-        logger.info(`User ${userAddress} joined their room`);
+      // Join user to quotation room
+      socket.on('quotation', (deviceId: string) => {
+        socket.join(`quotation`);
+        logger.info(`User ${deviceId} joined quotation room`);
       });
 
       // Join wallet monitoring room

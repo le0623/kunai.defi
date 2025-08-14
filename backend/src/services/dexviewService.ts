@@ -1,17 +1,16 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
 import {
-  DexViewResponse,
   DexViewPair,
-  DexViewServiceConfig,
-} from '../types/dexview';
+} from '@kunai/shared';
+
 import { Address } from 'viem';
 
 export class DexViewService {
   private baseUrl: string = 'https://openapi.dexview.com/latest';
   private timeout: number = 10000; // 10 second timeout
 
-  constructor(config: DexViewServiceConfig = {}) {
+  constructor(config: any = {}) {
     this.baseUrl = config.baseUrl || 'https://openapi.dexview.com/latest';
     this.timeout = config.timeout || 10000; // 10 second timeout
   }
@@ -24,7 +23,7 @@ export class DexViewService {
     pairAddresses: Address[]
   ): Promise<DexViewPair[]> {
     try {
-      const response = await axios.get<DexViewResponse>(
+      const response = await axios.get(
         `${this.baseUrl}/dex/pairs/${chainId}/${pairAddresses.join(',')}`,
         {
           timeout: this.timeout,

@@ -2,7 +2,7 @@ import { DataTable } from '@/components/table/data-table'
 import { useAppSelector } from '@/store/hooks'
 import { poolsAPI } from '@/services/api'
 import { useEffect, useState } from 'react'
-import type { KunaiTrendingPool } from '@kunai/shared'
+import type { KunaiPool } from '@kunai/shared'
 import { ArrowUp, ArrowDown, SearchIcon, StarIcon, User, Globe, X, Send } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { shortenAddress, getValueColor, formatPrice, formatNumber, formatAge, cn } from '@/lib/utils'
@@ -14,8 +14,10 @@ import Presets from '@/components/common/presets'
 import TokenBuy from '@/components/common/token-buy'
 import { TooltipImage } from '@/components/common/tooltip-image'
 import ButtonGroup from '@/components/common/button-group'
+import { useQuery } from '@tanstack/react-query'
+import { Skeleton } from '@/components/ui/skeleton'
 
-type Duration = keyof KunaiTrendingPool['attributes']['transactions']
+type Duration = keyof KunaiPool['attributes']['transactions']
 
 const durations: { value: Duration, label: string }[] = [
   { value: 'm5', label: '5m' },
@@ -29,12 +31,17 @@ const durations: { value: Duration, label: string }[] = [
 export default function Dashboard() {
   const navigate = useNavigate()
   const { selectedChain } = useAppSelector((state) => state.other)
-  const [trendingPools, setTrendingPools] = useState<KunaiTrendingPool[]>([])
   const [duration, setDuration] = useState<Duration>('h1')
   const [amount, setAmount] = useState<number>(0)
+  const { data: trendingPools, isLoading, error, refetch } = useQuery({
+    queryKey: ['trendingPools'],
+    queryFn: () => poolsAPI.getTrendingPools(selectedChain),
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
+  })
 
   // Helper function to render sorting arrow
-  const renderSortArrow = (column: Column<KunaiTrendingPool>) => {
+  const renderSortArrow = (column: Column<KunaiPool>) => {
     const isSorted = column.getIsSorted()
     const onClick = () => column.toggleSorting(column.getIsSorted() === "asc")
     if (isSorted === "asc") return <ArrowUp className="h-4 w-4 cursor-pointer" onClick={onClick} />
@@ -55,14 +62,14 @@ export default function Dashboard() {
     }
   }
 
-  const columnsTrendingTable = (duration: string = '1h'): ColumnDef<KunaiTrendingPool>[] => [
+  const columnsTrendingTable = (duration: string = '1h'): ColumnDef<KunaiPool>[] => [
     {
       accessorKey: "token",
       header: "Token",
       cell: ({ row }) => {
         const symbol = row.original.attributes.name.split(' ')[0]
         const address = row.original.attributes.address
-        const links = row.original.metadata?.links || {}
+        const links = row.original.moralisToken?.links || {}
 
         // Only show website, telegram, and twitter in sequence
         const priorityLinks = ['website', 'telegram', 'twitter']
@@ -76,8 +83,8 @@ export default function Dashboard() {
               className="w-4 h-4 text-muted-foreground hover:text-white"
               onClick={(e) => e.stopPropagation()}
             />
-            {row.original.metadata?.thumbnail ? (
-              <TooltipImage thumbnail={row.original.metadata?.thumbnail} src={row.original.metadata?.logo} alt={symbol} />
+            {row.original.moralisToken?.thumbnail ? (
+              <TooltipImage thumbnail={row.original.moralisToken?.thumbnail} src={row.original.moralisToken?.logo} alt={symbol} />
             ) : (
               <div className="w-16 h-16 bg-black border border-gray-500 rounded-full flex items-center justify-center">
                 <span className="text-lg font-medium">{symbol.slice(0, 2)}</span>
@@ -306,15 +313,7 @@ export default function Dashboard() {
     },
   ]
 
-  useEffect(() => {
-    const fetchTrendingPools = async () => {
-      const trendingPools = await poolsAPI.getTrendingPools(selectedChain)
-      setTrendingPools(trendingPools)
-    }
-    fetchTrendingPools()
-  }, [selectedChain])
-
-  const handleRowClick = (row: KunaiTrendingPool) => {
+  const handleRowClick = (row: KunaiPool) => {
     const address = row.relationships.base_token.data.id.split('_')[1]
     navigate(`/eth/token/${address}`, {
       state: { pool: row.attributes.address }
@@ -344,7 +343,13 @@ export default function Dashboard() {
       </div>
 
       <div className="flex-1 px-2 overflow-hidden">
-        <DataTable columns={columnsTrendingTable(duration)} data={trendingPools} onRowClick={handleRowClick} />
+        {isLoading ?
+          <div className='flex flex-col gap-2'>
+            {Array.from({ length: 10 }).map((_, index) => (
+              <Skeleton key={index} className="w-full h-20" />
+            ))}
+          </div>
+        : <DataTable columns={columnsTrendingTable(duration)} data={trendingPools || []} onRowClick={handleRowClick} />}
       </div>
     </div>
   )

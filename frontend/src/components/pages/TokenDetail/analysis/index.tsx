@@ -1,12 +1,12 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { type TokenInfo } from '@kunai/shared'
+import { type KunaiTokenInfo } from '@kunai/shared'
 import TokenActivity from './activity'
 import { Icon } from '@/lib/icon'
 import { Button } from '@/components/ui/button'
 import { useAppSelector } from '@/store/hooks'
 
-const TokenAnalysis = ({ token }: { token: TokenInfo }) => {
+const TokenAnalysis = ({ token }: { token: KunaiTokenInfo }) => {
   const { selectedChain } = useAppSelector(state => state.other)
 
   return (
@@ -25,9 +25,9 @@ const TokenAnalysis = ({ token }: { token: TokenInfo }) => {
             <Button variant="defaultOutline" className="h-[28px] w-[28px] p-0.5 rounded-sm"
               onClick={() => {
                 if (selectedChain === 'eth') {
-                  window.open(`https://app.insightx.network/bubblemaps/1/${token.address}`, '_blank')
+                  window.open(`https://app.insightx.network/bubblemaps/1/${token.moralisToken.address}`, '_blank')
                 } else if (selectedChain === 'sol') {
-                  window.open(`https://app.insightx.network/bubblemaps/114/${token.address}`, '_blank')
+                  window.open(`https://app.insightx.network/bubblemaps/114/${token.moralisToken.address}`, '_blank')
                 }
               }}
             >

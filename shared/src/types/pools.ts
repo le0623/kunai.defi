@@ -71,22 +71,63 @@ export interface LiquidityMetrics {
   quote: number
 }
 
-export interface DexViewData {
+export interface DexViewPair {
+  chainId: string
+  dexId: string
+  url: string
+  pairAddress: string
+  labels: string[]
+  baseToken: {
+    address: string
+    name: string
+    symbol: string
+    decimals: number
+  },
+  quoteToken: {
+    address: string
+    name: string
+    symbol: string
+    decimals: number
+  }
   priceNative: number
   priceUsd: number
+  txns: {
+    h24: {
+      buys: number
+      sells: number
+    },
+    h6: {
+      buys: number
+      sells: number
+    },
+    h1: {
+      buys: number
+      sells: number
+    },
+    m5: {
+      buys: number
+      sells: number
+    }
+  }
+  volume: {
+    h24: number
+    h6: number
+    h1: number
+    m5: number
+  }
+  priceChange: {
+    h24: number
+    h6: number
+    h1: number
+    m5: number
+  }
+  liquidity: {
+    usd: number
+    base: number
+    quote: number
+  },
   fdv: number
   pairCreatedAt: number
-  labels: string[]
-  url: string
-  transactions: {
-    h24: TransactionMetrics
-    h6: TransactionMetrics
-    h1: TransactionMetrics
-    m5: TransactionMetrics
-  }
-  volume: VolumeMetrics
-  priceChange: PriceChangeMetrics
-  liquidity: LiquidityMetrics
 }
 
 export interface Pool {
@@ -99,7 +140,7 @@ export interface Pool {
   token0: TokenInfo
   token1: TokenInfo
   metrics?: PoolMetrics
-  dexViewData?: DexViewData
+  dexViewPair?: DexViewPair
   createdAt: Date
   updatedAt: Date
   lastTradedAt?: Date
@@ -167,9 +208,9 @@ export interface Dex {
   routerAddress: string
   isActive: boolean
   chainId: number
-} 
+}
 
-export interface GeckoTerminalTrendingPool {
+export interface GeckoTerminalPool {
   id: string
   type: string
   attributes: {
@@ -262,6 +303,35 @@ export interface GeckoTerminalTrendingPool {
   }
 }
 
-export interface KunaiTrendingPool extends GeckoTerminalTrendingPool {
-  metadata: MoralisTokenMetadata | null
+export interface GeckoTerminalToken {
+  id: string
+  type: string
+  attributes: {
+    address: string
+    name: string
+    symbol: string
+    decimals: number
+    image_url: string
+    coingecko_coin_id: string
+    total_supply: string
+    normalized_total_supply: string
+    price_usd: string
+    fdv_usd: string
+    total_reserve_in_usd: string
+    volume_usd: {
+      h24: string
+    },
+    market_cap_usd: string
+  },
+  relationships: {
+    top_pools: {
+      data: Pick<GeckoTerminalPool, 'id' | 'type'>[]
+    }
+  }
+}
+
+export interface KunaiPool extends GeckoTerminalPool {
+  gtToken: GeckoTerminalToken
+  moralisToken: MoralisTokenMetadata | null
+  dexviewPair: DexViewPair | null
 }

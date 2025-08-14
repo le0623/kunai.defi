@@ -1,6 +1,6 @@
 import api from '@/lib/axios'
 import { storageService } from '@/services/localstorage'
-import type { GeckoTerminalTrendingPool, KunaiTrendingPool, MoralisTokenMetadata, MoralisTokenSwap, PoolRequest, TokenSecurityInfo } from '@kunai/shared'
+import type { GeckoTerminalPool, GeckoTerminalToken, KunaiPool, KunaiTokenInfo, MoralisTokenSwap, TokenSecurityInfo } from '@kunai/shared'
 import { AxiosError } from 'axios'
 
 // Authentication API calls
@@ -213,9 +213,9 @@ export const contractAPI = {
 // Pools API calls
 export const poolsAPI = {
   // New unified pools API with comprehensive filtering
-  getPools: async (params: PoolRequest = {}) => {
+  getPools: async (params: any): Promise<KunaiPool[]> => {
     const response = await api.get('/api/pools', { params })
-    return response.data
+    return response.data.data
   },
 
   // Get pool by token address
@@ -225,10 +225,10 @@ export const poolsAPI = {
   },
 
   // Get trending pools
-  getTrendingPools: async (chain: string): Promise<KunaiTrendingPool[]> => {
+  getTrendingPools: async (chain: string): Promise<KunaiPool[]> => {
     const response = await api.get(`/api/pools/trending?chain=${chain}`)
     if (response.data.success) {
-      return response.data.data as KunaiTrendingPool[]
+      return response.data.data as KunaiPool[]
     }
     return []
   },
@@ -299,9 +299,9 @@ export const poolsAPI = {
 // Token API calls
 export const tokenAPI = {
   // Get complete token information by chain and address
-  getTokenInfo: async (chain: string, address: string) => {
+  getTokenInfo: async (chain: string, address: string): Promise<KunaiTokenInfo> => {
     const response = await api.get(`/api/token/${chain}/${address}`)
-    return response.data
+    return response.data.data
   },
 
   // Get token swaps by token address

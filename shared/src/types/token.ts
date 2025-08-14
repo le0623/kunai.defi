@@ -1,3 +1,5 @@
+import { GeckoTerminalToken } from "./pools"
+
 interface TokenInfo {
   address: string
   symbol: string
@@ -31,6 +33,7 @@ export interface MoralisTokenMetadata {
   address_label?: string;
   name: string;
   symbol: string;
+  description?: string;
   decimals: string;
   logo?: string;
   logo_hash?: string;
@@ -44,7 +47,60 @@ export interface MoralisTokenMetadata {
   possible_spam?: string;
   verified_contract?: string;
   categories?: string[];
+  security_score?: number;
+  circulating_supply: string;
+  market_cap?: string;
   links?: MoralisTokenLinks;
+}
+
+export interface MoralisTokenDetail {
+  chain_id: string;
+  token_address: string;
+  token_name: string;
+  token_symbol: string;
+  token_logo: string;
+  price_usd: number;
+  token_age_in_days: number;
+  on_chain_strength_index: number;
+  security_score: number;
+  market_cap: number;
+  fully_diluted_valuation: number;
+  twitter_followers: number;
+  holders_change: LongTimeSeries;
+  liquidity_change_usd: LongTimeSeries;
+  experienced_net_buyers_change: LongTimeSeries;
+  volume_change_usd: LongTimeSeries;
+  net_volume_change_usd: LongTimeSeries;
+  price_percent_change_usd: LongTimeSeries;
+}
+
+export interface LongTimeSeries {
+  "1h": number;
+  "1d": number;
+  "1w": number;
+  "1M": number;
+}
+
+export interface ShortTimeSeries {
+  "5m": number;
+  "1h": number;
+  "6h": number;
+  "24h": number;
+}
+
+export interface MoralisTokenAnalytics {
+  tokenAddress: string;
+  totalBuyVolume: ShortTimeSeries;
+  totalSellVolume: ShortTimeSeries;
+  totalBuyers: ShortTimeSeries;
+  totalSellers: ShortTimeSeries;
+  totalBuys: ShortTimeSeries;
+  totalSells: ShortTimeSeries;
+  uniqueWallets: ShortTimeSeries;
+  pricePercentChange: ShortTimeSeries;
+  usdPrice: string;
+  totalLiquidityUsd: string;
+  totalFullyDilutedValuation: string;
 }
 
 export interface MoralisServiceConfig {
@@ -70,4 +126,12 @@ export interface TokenMetadataInfo {
   categories?: string[];
   links?: MoralisTokenLinks;
   addressLabel?: string;
+}
+
+export interface KunaiTokenInfo {
+  tokenInfo: GeckoTerminalToken;
+  moralisToken: MoralisTokenMetadata;
+  moralisTokenAnalytics: MoralisTokenAnalytics;
+  chain: string;
+  lastUpdated: string;
 }

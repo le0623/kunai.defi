@@ -18,6 +18,7 @@ import {
 } from '@/config/abi';
 import { prisma } from '@/config/database';
 import { TelegramBotService } from './telegramBotService';
+import { RealtimeService } from './realtimeService';
 
 export class PoolService {
   private static readonly COINGECKO_API = 'https://api.coingecko.com/api/v3';
@@ -143,6 +144,10 @@ export class PoolService {
 
         // Save pool data to database
         await this.savePoolToDatabase(newPool, tokenAddress, WETH_ADDRESS, fee);
+
+        RealtimeService.io.to('quotation').emit('new-pool', {
+          pool: newPool,
+        });
 
         // Send notifications to active users
         await this.notifyUsersOfNewPool(newPool);

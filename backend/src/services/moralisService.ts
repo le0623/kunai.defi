@@ -1,56 +1,36 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
-import { type MoralisTokenMetadata, type TokenMetadataInfo, type MoralisServiceConfig } from '@kunai/shared';
-import { Address } from '@/types';
+import { type MoralisTokenMetadata, type TokenMetadataInfo, type MoralisTokenDetail, type MoralisTokenAnalytics } from '@kunai/shared';
 import Moralis from 'moralis';
 
+const axiosMoralis = axios.create({
+  baseURL: 'https://deep-index.moralis.io/api/v2.2',
+  headers: {
+    accept: 'application/json',
+    'X-API-Key': process.env['MORALIS_API_KEY'] || '',
+  },
+});
+
 export class MoralisService {
-  private baseUrl: string;
-  private apiKey: string;
-  private timeout: number;
-
-  constructor(config: MoralisServiceConfig = {}) {
-    this.baseUrl = config.baseUrl || 'https://deep-index.moralis.io/api/v2.2';
-    this.apiKey = config.apiKey || process.env['MORALIS_API_KEY'] || '';
-    this.timeout = config.timeout || 10000; // 10 second timeout
-
-    if (!this.apiKey) {
-      logger.warn(
-        'Moralis API key not found. Token metadata features will be limited.'
-      );
-    }
-  }
-
   /**
    * Get token metadata for multiple tokens
    */
   async getTokensMetadata(
     chain: string,
-    addresses: Address[]
+    addresses: string[]
   ): Promise<MoralisTokenMetadata[]> {
     try {
-      if (!this.apiKey) {
-        logger.warn('Moralis API key not configured');
-        return [];
-      }
-
       if (addresses.length === 0) {
         return [];
       }
 
-      const response = await axios.get<MoralisTokenMetadata[]>(
-        `${this.baseUrl}/erc20/metadata`,
+      const response = await axiosMoralis.get<MoralisTokenMetadata[]>(
+        `/erc20/metadata`,
         {
           params: {
             chain,
             addresses,
           },
-          headers: {
-            'X-API-Key': this.apiKey,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          timeout: this.timeout + 5000, // Extra timeout for multiple tokens
         }
       );
 
@@ -84,6 +64,35 @@ export class MoralisService {
   }
 
   /**
+   * Get token detail
+   */
+  async getTokenDetail(
+    chain: string,
+    address: string
+  ): Promise<MoralisTokenDetail> {
+    console.log('getTokenDetail', chain, address);
+    const response = await axiosMoralis.get<MoralisTokenDetail>(
+      `/discovery/token?chain=${chain}&token_address=${address}`
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Get token analytics
+   */
+  async getTokenAnalytics(
+    chain: string,
+    address: string
+  ): Promise<MoralisTokenAnalytics> {
+    const response = await axiosMoralis.get<MoralisTokenAnalytics>(
+      `/tokens/${address}/analytics?chain=${chain}`,
+    );
+
+    return response.data;
+  }
+
+  /**
    * Get specific token pool
    */
   async getSpecificTokenPool(
@@ -101,16 +110,8 @@ export class MoralisService {
       address: string;
     }
   ): Promise<any> {
-    const options = {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'X-API-Key': this.apiKey,
-      },
-    };
-
-    const response = await fetch(`${this.baseUrl}/erc20/${params.address}/swaps?chain=${params.chain}&order=DESC`, options)
-    return response.json();
+    const response = await axiosMoralis.get(`/erc20/${params.address}/swaps?chain=${params.chain}&order=DESC`)
+    return response.data;
   }
 
   /**

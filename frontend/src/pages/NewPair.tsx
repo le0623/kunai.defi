@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { CloudLightningIcon, RefreshCw, SearchIcon, StarIcon, ArrowUp, ArrowDown } from 'lucide-react'
 import { DataTable } from '@/components/table/data-table'
 import { poolsAPI } from '@/services/api'
-import type { Pool } from '@kunai/shared'
+import type { GeckoTerminalPool, GeckoTerminalToken, KunaiPool } from '@kunai/shared'
 import CopyIcon from '@/components/common/copy'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn, formatAge, formatNumber, getValueColor, formatPrice } from '@/lib/utils'
@@ -13,6 +13,9 @@ import { useAppSelector } from '@/store/hooks'
 import { type Column, type ColumnDef } from '@tanstack/react-table'
 import { TooltipImage } from '@/components/common/tooltip-image'
 import ButtonGroup from '@/components/common/button-group'
+import { useQuery } from '@tanstack/react-query'
+import { useSocketIOData } from '@/contexts/SocketIOContext'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Define Token type
 export type Token = {
@@ -40,49 +43,65 @@ export type Token = {
 }
 
 // Transform pool data to Token format
-const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
+const transformPoolToToken = (pool: KunaiPool, selectedDuration: string) => {
   // Get transaction and volume data based on selected duration
   const getDurationData = () => {
     switch (selectedDuration) {
       case '5m':
         return {
           tx: {
-            buys: pool.dexViewData?.transactions.m5.buys || 0,
-            sells: pool.dexViewData?.transactions.m5.sells || 0,
+            buys: pool.attributes.transactions.m5.buys || 0,
+            sells: pool.attributes.transactions.m5.sells || 0,
           },
-          vol: pool.dexViewData?.volume.m5 || 0,
+          vol: parseFloat(pool.attributes.volume_usd.m5) || 0,
+        }
+      case '15m':
+        return {
+          tx: {
+            buys: pool.attributes.transactions.m15.buys || 0,
+            sells: pool.attributes.transactions.m15.sells || 0,
+          },
+          vol: parseFloat(pool.attributes.volume_usd.m15) || 0,
+        }
+      case '30m':
+        return {
+          tx: {
+            buys: pool.attributes.transactions.m30.buys || 0,
+            sells: pool.attributes.transactions.m30.sells || 0,
+          },
+          vol: parseFloat(pool.attributes.volume_usd.m30) || 0,
         }
       case '1h':
         return {
           tx: {
-            buys: pool.dexViewData?.transactions.h1.buys || 0,
-            sells: pool.dexViewData?.transactions.h1.sells || 0,
+            buys: pool.attributes.transactions.h1.buys || 0,
+            sells: pool.attributes.transactions.h1.sells || 0,
           },
-          vol: pool.dexViewData?.volume.h1 || 0,
+          vol: parseFloat(pool.attributes.volume_usd.h1) || 0,
         }
       case '6h':
         return {
           tx: {
-            buys: pool.dexViewData?.transactions.h6.buys || 0,
-            sells: pool.dexViewData?.transactions.h6.sells || 0,
+            buys: pool.attributes.transactions.h6.buys || 0,
+            sells: pool.attributes.transactions.h6.sells || 0,
           },
-          vol: pool.dexViewData?.volume.h6 || 0,
+          vol: parseFloat(pool.attributes.volume_usd.h6) || 0,
         }
       case '24h':
         return {
           tx: {
-            buys: pool.dexViewData?.transactions.h24.buys || 0,
-            sells: pool.dexViewData?.transactions.h24.sells || 0,
+            buys: pool.attributes.transactions.h24.buys || 0,
+            sells: pool.attributes.transactions.h24.sells || 0,
           },
-          vol: pool.dexViewData?.volume.h24 || 0,
+          vol: parseFloat(pool.attributes.volume_usd.h24) || 0,
         }
       default:
         return {
           tx: {
-            buys: pool.dexViewData?.transactions.m5.buys || 0,
-            sells: pool.dexViewData?.transactions.m5.sells || 0,
+            buys: pool.attributes.transactions.m5.buys || 0,
+            sells: pool.attributes.transactions.m5.sells || 0,
           },
-          vol: pool.dexViewData?.volume.m5 || 0,
+          vol: parseFloat(pool.attributes.volume_usd.m5) || 0,
         }
     }
   }
@@ -91,22 +110,22 @@ const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
 
   return {
     id: pool.id.toString(),
-    link: `/eth/token/${pool.token0.address}`,
+    link: `/eth/token/${pool.gtToken.attributes.address}`,
     token: {
-      symbol: pool.token0.symbol,
-      address: pool.token0.address,
-      logo: pool.token0.imageUrl,
+      symbol: pool.gtToken.attributes.symbol,
+      address: pool.gtToken.attributes.address,
+      logo: pool.gtToken.attributes.image_url,
     },
-    age: pool.age,
-    initial: pool.dexViewData?.liquidity.quote || 0,
+    age: (new Date().getTime() - new Date(pool.attributes.pool_created_at).getTime()) / 1000,
+    initial: parseFloat(pool.attributes.reserve_in_usd) || 0,
     mc: 0,
     holders: 0,
     tx: durationData.tx,
     vol: durationData.vol,
-    price: pool.dexViewData?.priceUsd || 0,
-    change5m: pool.dexViewData?.priceChange.m5 || 0,
-    change1h: pool.dexViewData?.priceChange.h1 || 0,
-    change6h: pool.dexViewData?.priceChange.h6 || 0,  
+    price: parseFloat(pool.gtToken.attributes.price_usd) || 0,
+    change5m: parseFloat(pool.attributes.price_change_percentage.m5) || 0,
+    change1h: parseFloat(pool.attributes.price_change_percentage.h1) || 0,
+    change6h: parseFloat(pool.attributes.price_change_percentage.h6) || 0,  
     // degenAudit: {
     //   isHoneypot: false,
     //   isOpenSource: false,
@@ -122,12 +141,25 @@ const transformPoolToToken = (pool: Pool, selectedDuration: string) => {
 const NewPair = () => {
   const navigate = useNavigate()
   const [selectedDuration, setSelectedDuration] = useState('1h')
-  const [pools, setPools] = useState<Pool[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isWindowFocused, setIsWindowFocused] = useState(true)
   const [amount, setAmount] = useState<number>(0)
   const { selectedChain } = useAppSelector((state) => state.other)
+  const { data: pools, isLoading, error, refetch } = useQuery({
+    queryKey: ['pools'],
+    queryFn: () => poolsAPI.getPools({ chain: selectedChain }),
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
+  })
+
+  // Memoized event handler to prevent unnecessary re-renders
+  const handleNewPool = useCallback((data: any) => {
+    console.log('New pool received:', data)
+    refetch()
+  }, [])
+
+  // Use unified Socket.IO hook for room and events
+  useSocketIOData('quotation', {
+    'new-pool': handleNewPool
+  })
 
   // Helper function to render sorting arrow
   const renderSortArrow = (column: Column<Token>) => {
@@ -145,7 +177,7 @@ const NewPair = () => {
       header: "Token",
       cell: ({ row }) => {
         const token = row.original.token
-        
+
         return (
           <div className="flex items-center gap-2">
             <StarIcon
@@ -423,66 +455,7 @@ const NewPair = () => {
   ]
 
   // Transform pools to tokens for table display
-  const tokens = pools.map(pool => transformPoolToToken(pool, selectedDuration));
-
-  // Fetch pools function
-  const fetchPools = useCallback(async () => {
-    if (!isWindowFocused) return; // Don't fetch if window is not focused
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await poolsAPI.getPools();
-
-      if (response.success && response.data.pools) {
-        setPools(response.data.pools);
-      } else {
-        setError('Failed to fetch pools');
-      }
-    } catch (err) {
-      console.error('Error fetching pools:', err);
-      setError('Error fetching pools');
-    } finally {
-      setLoading(false);
-    }
-  }, [isWindowFocused]);
-
-  // Handle window focus/blur events
-  useEffect(() => {
-    const handleFocus = () => {
-      setIsWindowFocused(true);
-      // Fetch immediately when window gains focus
-      fetchPools();
-    };
-
-    const handleBlur = () => {
-      setIsWindowFocused(false);
-    };
-
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [fetchPools]);
-
-  // Initial fetch and polling setup
-  useEffect(() => {
-    // Initial fetch
-    fetchPools();
-
-    // Set up interval for polling (only when window is focused)
-    const interval = setInterval(() => {
-      if (isWindowFocused) {
-        fetchPools();
-      }
-    }, 15000); // 15 seconds
-
-    return () => clearInterval(interval);
-  }, [fetchPools, isWindowFocused]);
+  const tokens = pools?.map(pool => transformPoolToToken(pool as KunaiPool, selectedDuration)) || [];
 
   // Handle duration change
   const handleDurationChange = (duration: string) => {
@@ -498,12 +471,12 @@ const NewPair = () => {
 
   const durations = [
     { value: '5m', label: '5m' },
+    { value: '15m', label: '15m' },
+    { value: '30m', label: '30m' },
     { value: '1h', label: '1h' },
     { value: '6h', label: '6h' },
     { value: '24h', label: '24h' },
   ]
-
-
 
   return (
     <div className="h-full flex flex-col">
@@ -518,15 +491,8 @@ const NewPair = () => {
               onClick: () => handleDurationChange(d.value),
             }))}
             selectedButtons={[selectedDuration]}
-            className={cn("w-12 px-2 py-1 text-sm font-medium cursor-pointer rounded-sm")}
+            className={cn("w-10 px-2 py-1 text-sm font-medium cursor-pointer rounded-sm")}
           />
-
-          {/* Status indicator */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className={`w-2 h-2 rounded-full ${isWindowFocused ? 'bg-green-300' : 'bg-gray-400'}`} />
-            <span>{isWindowFocused ? 'Live' : 'Paused'}</span>
-            {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
-          </div>
         </div>
         <div className='flex items-center gap-2'>
           <TokenBuy amount={amount} setAmount={setAmount} selectedChain={selectedChain} />
@@ -538,17 +504,25 @@ const NewPair = () => {
       {error && (
         <div className="px-4 mb-4 flex-shrink-0">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
+            {error.message}
           </div>
         </div>
       )}
 
       <div className="flex-1 px-2 pb-2 overflow-hidden">
-        <DataTable
-          columns={columns(selectedDuration)}
-          data={tokens}
-          onRowClick={handleRowClick}
-        />
+        {isLoading ?
+          <div className='flex flex-col gap-2'>
+            {Array.from({ length: 10 }).map((_, index) => (
+              <Skeleton key={index} className="w-full h-20" />
+            ))}
+          </div>
+          :
+          <DataTable
+            columns={columns(selectedDuration)}
+            data={tokens}
+            onRowClick={handleRowClick}
+          />
+        }
       </div>
     </div>
   )

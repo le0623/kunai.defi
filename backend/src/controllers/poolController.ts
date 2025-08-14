@@ -5,7 +5,7 @@ import { prisma } from '@/config/database';
 import { dexViewService, moralisService } from '@/services';
 import { geckoTerminalService } from '@/services/geckoterminalService';
 import { Address } from '@/types';
-import type { GeckoTerminalTrendingPool, KunaiTrendingPool, MoralisTokenMetadata, PoolRequest } from '@kunai/shared';
+import type { GeckoTerminalPool, GeckoTerminalToken, MoralisTokenMetadata, DexViewPair } from '@kunai/shared';
 
 export class PoolController {
   /**
@@ -14,147 +14,24 @@ export class PoolController {
   static async getPools(req: Request, res: Response) {
     try {
       const {
-        page = 1,
-        limit = 30,
-        chain = 1, // eth
-        tokenAddress,
-      } = req.query as PoolRequest;
+        chain = 'eth',
+      } = req.query;
 
-      // Build where clause for database query
-      const where: any = {};
-
-      if (chain) where.chainId = parseInt(chain as string);
-      if (tokenAddress)
-        where.OR = [
-          {
-            token0Address: {
-              contains: tokenAddress as string,
-              mode: 'insensitive',
-            },
-          },
-          {
-            token1Address: {
-              contains: tokenAddress as string,
-              mode: 'insensitive',
-            },
-          },
-        ];
-
-      const skip = (page - 1) * limit;
-
-      // Get pools from database
-      const [pools, total] = await Promise.all([
-        prisma.pool.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
-          include: {
-            chain: true,
-            dex: true,
-          },
-        }),
-        prisma.pool.count({ where }),
-      ]);
-
-      // Get enriched data from external APIs
-      const dexViewPairs = await dexViewService.getPairs(
-        'eth',
-        pools.map((pool: any) => pool.address as Address)
-      );
-      const moralisPairs = await moralisService.getTokensMetadata(
-        'eth',
-        pools.map((pool: any) => pool.token0Address as Address)
-      );
-
-      // Create a map for quick lookup
-      const dexViewMap = new Map(
-        dexViewPairs.map((pair: any) => [pair.pairAddress.toLowerCase(), pair])
-      );
-      const moralisMap = new Map(
-        moralisPairs.map((token: any) => [token.address.toLowerCase(), token])
-      );
-
-      // Transform pools with enriched data
-      const transformedPools = pools.map((pool: any) => {
-        const dexViewData = dexViewMap.get(pool.address.toLowerCase());
-        const moralisData = moralisMap.get(pool.token0Address.toLowerCase());
-
-        return {
-          id: pool.id,
-          address: pool.address,
-          chain: pool.chain.name,
-          chainId: pool.chain.chainId,
-          exchange: pool.dex.name,
-          dexVersion: pool.dex.version,
-
-          // Token information
-          token0: {
-            address: pool.token0Address,
-            symbol: pool.token0Symbol,
-            name: pool.token0Name,
-            decimals: pool.token0Decimals,
-            // Enriched from Moralis
-            logo: moralisData?.logo,
-            thumbnail: moralisData?.thumbnail,
-            totalSupply: moralisData?.totalSupply,
-            totalSupplyFormatted: moralisData?.totalSupplyFormatted,
-            isVerified: moralisData?.isVerifiedContract || false,
-            isPossibleSpam: moralisData?.isPossibleSpam || false,
-            categories: moralisData?.categories || [],
-            links: moralisData?.links || {},
-          },
-          token1: {
-            address: pool.token1Address,
-            symbol: pool.token1Symbol,
-            name: pool.token1Name,
-            decimals: pool.token1Decimals,
-          },
-
-          // Enriched metrics from DexView
-          dexViewData: dexViewData
-            ? {
-                priceNative: dexViewData.priceNative,
-                priceUsd: dexViewData.priceUsd,
-                fdv: dexViewData.fdv,
-                pairCreatedAt: dexViewData.pairCreatedAt,
-                labels: dexViewData.labels,
-                url: dexViewData.url,
-
-                // Transaction data
-                transactions: dexViewData.txns,
-
-                // Volume data
-                volume: dexViewData.volume,
-
-                // Price change data
-                priceChange: dexViewData.priceChange,
-
-                // Liquidity data
-                liquidity: dexViewData.liquidity,
-              }
-            : null,
-
-          // Timestamps
-          createdAt: pool.createdAt,
-          updatedAt: pool.updatedAt,
-          lastTradedAt: pool.lastTradedAt,
-
-          // Age calculation
-          age: Math.floor((Date.now() - pool.createdAt.getTime()) / 1000),
-        };
-      });
+      const pools = await geckoTerminalService.getNewPools(chain as string);
+      const tokenAddresses = pools.map((pool: GeckoTerminalPool) => pool.relationships.base_token.data.id.split('_')[1] as Address);
+      const gtTokens = await geckoTerminalService.getMultipleTokensInfo(chain as string, tokenAddresses);
+      const moralisTokens = await moralisService.getTokensMetadata(chain as string, tokenAddresses);
+      const dexviewPairs = await dexViewService.getPairs(chain as string, tokenAddresses);
+      const aggregatedPools = pools.map((pool: GeckoTerminalPool) => ({
+        ...pool,
+        dexviewPair: dexviewPairs.find((dexviewPair: DexViewPair) => dexviewPair.pairAddress === pool.attributes.address),
+        gtToken: gtTokens.find((token: GeckoTerminalToken) => token.attributes.address === pool.relationships.base_token.data.id.split('_')[1]),
+        moralisToken: moralisTokens.find((token: MoralisTokenMetadata) => token.address === pool.relationships.base_token.data.id.split('_')[1]),
+      }));
 
       res.json({
         success: true,
-        data: {
-          pools: transformedPools,
-          total,
-          page,
-          limit,
-          hasMore: skip + limit < total,
-          timestamp: new Date().toISOString(),
-        },
+        data: aggregatedPools,
       });
     } catch (error) {
       logger.error('Error getting pools from database:', error);
@@ -216,13 +93,16 @@ export class PoolController {
       const { chain } = req.query;
 
       const trendingPools = await geckoTerminalService.getTrendingPools(chain as string);
-      const tokenAddresses = trendingPools.map((pool: GeckoTerminalTrendingPool) => pool.relationships.base_token.data.id.split('_')[1] as Address);
-      const tokenMetadata = await moralisService.getTokensMetadata(chain as string, tokenAddresses);
-
-      const enrichedPools = trendingPools.map((pool: GeckoTerminalTrendingPool) => ({
+      const tokenAddresses = trendingPools.map((pool: GeckoTerminalPool) => pool.relationships.base_token.data.id.split('_')[1] as Address);
+      const gtTokens = await geckoTerminalService.getMultipleTokensInfo(chain as string, tokenAddresses);
+      const moralisTokens = await moralisService.getTokensMetadata(chain as string, tokenAddresses);
+      const dexviewPairs = await dexViewService.getPairs(chain as string, tokenAddresses);
+      const enrichedPools = trendingPools.map((pool: GeckoTerminalPool) => ({
         ...pool,
-        metadata: tokenMetadata.find((token: MoralisTokenMetadata) => token.address === pool.relationships.base_token.data.id.split('_')[1]),
-      })) as KunaiTrendingPool[];
+        gtToken: gtTokens.find((token: GeckoTerminalToken) => token.attributes.address === pool.relationships.base_token.data.id.split('_')[1]),
+        moralisToken: moralisTokens.find((token: MoralisTokenMetadata) => token.address === pool.relationships.base_token.data.id.split('_')[1]),
+        dexviewPair: dexviewPairs.find((dexviewPair: DexViewPair) => dexviewPair.pairAddress === pool.attributes.address),
+      }));
       res.json({
         success: true,
         data: enrichedPools,

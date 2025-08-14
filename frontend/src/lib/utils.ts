@@ -20,11 +20,11 @@ export function showAlert(message: string) {
 // Helper function to format numbers with k, m, b units
 export const formatNumber = (num: number): string => {
   if (num >= 1000000000) {
-    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'b'
+    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'
   } else if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm'
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
   }
   return num > 0 ? num.toFixed(2).toString() : '0'
 }

@@ -2,15 +2,15 @@ import { DataTable } from "@/components/table/data-table"
 import { type ColumnDef } from "@tanstack/react-table"
 import { cn, formatAge, formatNumber } from '@/lib/utils'
 import { Link } from 'react-router-dom'
-import { type MoralisTokenSwap, type TokenInfo } from '@kunai/shared'
+import { type MoralisTokenSwap, type KunaiTokenInfo } from '@kunai/shared'
 import { tokenAPI } from "@/services/api"
 import { useQuery } from "@tanstack/react-query"
 import { useAppSelector } from "@/store/hooks"
 import { Icon } from "@/lib/icon"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface ActivityProps {
-  token: TokenInfo
+  token: KunaiTokenInfo
 }
 
 const columns: ColumnDef<MoralisTokenSwap>[] = [
@@ -139,11 +139,10 @@ const TokenActivity = ({ token }: ActivityProps) => {
 
 
   const { data: swaps } = useQuery({
-    queryKey: ['swaps', token.address],
-    queryFn: () => tokenAPI.getTokenSwaps(selectedChain, token.address),
+    queryKey: ['token swaps'],
+    queryFn: () => tokenAPI.getTokenSwaps(selectedChain, token.moralisToken.address),
+    enabled: !!token.moralisToken.address && !!selectedChain,
   })
-
-  console.log("swaps", swaps)
 
   return (
     <div className="flex-1 overflow-hidden">
