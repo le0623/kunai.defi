@@ -1,26 +1,30 @@
 import Presets from "@/components/common/presets"
 import Input from "@/components/common/input"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { useAuth } from '@/store/hooks'
+import { useAuth, usePrice } from '@/store/hooks'
 import { useAccount, useBalance } from 'wagmi'
 import { tradingService } from '@/services/tradingService'
 import { toast } from 'sonner'
 import { formatNumber } from '@/lib/utils'
 import ButtonGroup from "@/components/common/button-group"
+import { type KunaiTokenInfo } from "@kunai/shared"
 
 interface TradeProps {
-  tokenAddress: string
-  tokenSymbol: string
+  token: KunaiTokenInfo
   onBalanceUpdate?: (balances: { ethBalance: string; tokenBalance: string }) => void
 }
 
-export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps) => {
+export const Trade = ({ token, onBalanceUpdate }: TradeProps) => {
   const [isBuy, setIsBuy] = useState(true)
   const [amount, setAmount] = useState('0.01')
   const [loading, setLoading] = useState(false)
   const [ethBalance, setEthBalance] = useState('0')
   const [tokenBalance, setTokenBalance] = useState('0')
+  const { marketPrice, selectedChain } = usePrice()
+  const rate = useMemo(() => {
+    return parseFloat(marketPrice ?? '0') / parseFloat(token.tokenInfo.attributes.price_usd)
+  }, [marketPrice, token.tokenInfo.attributes.price_usd])
 
   const { isAuthenticated, showAuthDlg } = useAuth()
   const { address: externalWalletAddress, isConnected } = useAccount()
@@ -28,6 +32,8 @@ export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps
     address: externalWalletAddress,
     chainId: 1,
   })
+
+  const { address: tokenAddress, symbol: tokenSymbol } = token.moralisToken
 
   // Determine wallet type and address
   const walletType = isConnected ? 'external' : 'in-app'
@@ -195,8 +201,12 @@ export const Trade = ({ tokenAddress, tokenSymbol, onBalanceUpdate }: TradeProps
         </div>
 
         <div className="flex justify-between text-sm text-white/50">
-          <span>1 ETH ≈ $1,000</span>
-          <span>Wallet: {walletType === 'external' ? 'External' : 'In-App'}</span>
+          {isBuy ? (
+            <span>1 {selectedChain.toUpperCase()} ≈ {rate} {tokenSymbol}</span>
+          ) : (
+            <span>1 {tokenSymbol} ≈ {1 / rate} {selectedChain.toUpperCase()}</span>
+          )}
+          {/* <span>Wallet: {walletType === 'external' ? 'External' : 'In-App'}</span> */}
         </div>
       </div>
 

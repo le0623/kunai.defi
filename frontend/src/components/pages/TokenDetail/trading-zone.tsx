@@ -6,13 +6,13 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react"
 import type { KunaiTokenInfo } from "@kunai/shared"
-import { formatPrice, formatNumber } from "@/lib/utils"
 import { Trade } from "./trade"
 import { useAuth } from '@/store/hooks'
 import { useAccount } from 'wagmi'
 import { tradingService } from '@/services/tradingService'
 import { TokenSecurity } from "./token-security"
 import { Separator } from "@/components/ui/separator"
+import TokenAnalytics from "./token-analytics"
 
 export const TradingZone = ({ token }: { token: KunaiTokenInfo }) => {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
@@ -69,9 +69,10 @@ export const TradingZone = ({ token }: { token: KunaiTokenInfo }) => {
 
       {!leftPanelCollapsed && (
         <div className="h-full overflow-y-auto">
+          <TokenAnalytics token={token} />
+          <Separator />
           <Trade
-            tokenAddress={token.moralisToken.address}
-            tokenSymbol={token.moralisToken.symbol}
+            token={token}
             onBalanceUpdate={handleBalanceUpdate}
           />
           <Separator />

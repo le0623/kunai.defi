@@ -57,17 +57,17 @@ const TokenBar = ({ tokenInfo }: { tokenInfo: KunaiTokenInfo }) => {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <div className="flex flex-col items-end justify-between">
-            <p className={cn("text-muted-foreground", isBearish ? "text-red-500" : "text-green-500")}>${tokenInfo?.moralisTokenAnalytics?.usdPrice}</p>
-            <p className="text-sm font-semibold">MC: ${formatNumber(Number(tokenInfo?.moralisToken?.market_cap))}</p>
+          <div className="flex flex-col items-end">
+            <p className={cn("font-semibold", isBearish ? "text-red-500" : "text-green-500")}>${tokenInfo?.tokenInfo.attributes.price_usd}</p>
+            <p className="text-sm">MC: ${formatNumber(Number(tokenInfo?.moralisToken?.market_cap))}</p>
           </div>
-          <div className="flex flex-col items-center justify-between">
+          <div className="flex flex-col items-center">
             <p className="text-sm text-muted-foreground">Liq</p>
-            <p className="text-sm font-semibold">${formatNumber(Number(tokenInfo?.moralisTokenAnalytics?.totalLiquidityUsd))}</p>
+            <p>${formatNumber(Number(tokenInfo?.moralisTokenAnalytics?.totalLiquidityUsd))}</p>
           </div>
-          <div className="flex flex-col items-center justify-between">
+          <div className="flex flex-col items-center">
             <p className="text-sm text-muted-foreground">24h Vol</p>
-            <p className="text-sm font-semibold">${formatNumber(Number(tokenInfo?.tokenInfo?.attributes.volume_usd.h24))}</p>
+            <p>${formatNumber(Number(tokenInfo?.tokenInfo?.attributes.volume_usd.h24))}</p>
           </div>
         </div>
       </div>

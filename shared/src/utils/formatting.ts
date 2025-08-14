@@ -22,19 +22,20 @@ export function formatCurrency(
 /**
  * Format a number with appropriate suffixes (K, M, B, T)
  */
-export function formatNumber(
-  num: number | string,
-  decimals: number = 2
-): string {
-  const value = typeof num === 'string' ? parseFloat(num) : num
-  if (isNaN(value)) return '0'
-  
-  if (value >= 1e12) return `${(value / 1e12).toFixed(decimals)}T`
-  if (value >= 1e9) return `${(value / 1e9).toFixed(decimals)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(decimals)}M`
-  if (value >= 1e3) return `${(value / 1e3).toFixed(decimals)}K`
-  
-  return value.toFixed(decimals)
+export function formatNumber(num: number | string, decimals: number = 2): string {
+  // Remove commas from strings before parsing
+  const value = typeof num === 'string' ? parseFloat(num.replace(/,/g, '')) : num;
+  if (isNaN(value)) return '0';
+
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+
+  if (absValue >= 1e12) return `${sign}${(absValue / 1e12).toFixed(decimals).replace(/\.00$/, '')}T`;
+  if (absValue >= 1e9) return `${sign}${(absValue / 1e9).toFixed(decimals).replace(/\.00$/, '')}B`;
+  if (absValue >= 1e6) return `${sign}${(absValue / 1e6).toFixed(decimals).replace(/\.00$/, '')}M`;
+  if (absValue >= 1e3) return `${sign}${(absValue / 1e3).toFixed(decimals).replace(/\.00$/, '')}K`;
+
+  return `${sign}${Number.isInteger(absValue) ? absValue : absValue.toFixed(decimals)}`;
 }
 
 /**
