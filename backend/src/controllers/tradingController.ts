@@ -4,6 +4,9 @@ import { logger } from '@/utils/logger';
 import { AuthenticatedRequest } from '@/middleware/auth';
 import { createPublicClient, http, parseEther, formatEther, getAddress } from 'viem';
 import { mainnet } from 'viem/chains';
+import { TradingService } from '@/services/tradingService';
+import { WalletService } from '@/services/walletService';
+import { WETH_ADDRESS } from '@/config/abi';
 
 export class TradingController {
   /**
@@ -380,182 +383,87 @@ export class TradingController {
     res: Response
   ): Promise<void> {
     try {
-      const { tokenAddress, amount, isBuy, slippageTolerance = 50, deadline = 300 } = req.body;
+      const { tokenAddress, amount, isBuy, slippageTolerance = 50 } = req.body;
 
       if (!tokenAddress || !amount || typeof isBuy !== 'boolean') {
-        res.status(400).json({
-          success: false,
-          message: 'Token address, amount, and isBuy are required'
-        });
-        return;
+        throw new Error('Token address, amount, and isBuy are required');
       }
 
       // Get user and their in-app wallet
       const user = await prisma.user.findUnique({
         where: { id: req.user!.id },
+        include: {
+          inAppWallet: true
+        }
       });
 
       if (!user || !user.inAppWallet) {
-        res.status(404).json({ 
-          success: false, 
-          message: 'User not found or no in-app wallet configured' 
-        });
-        return;
+        throw new Error('User not found or no in-app wallet configured');
       }
-
-      // Create blockchain client
-      const client = createPublicClient({
-        chain: mainnet,
-        transport: http(process.env.ETHEREUM_RPC_URL || "https://1rpc.io/eth"),
-      });
 
       // Check balance before trading
-      const balanceCheck = await this.checkBalance(client, tokenAddress, user.inAppWallet, amount, isBuy);
-      if (!balanceCheck.sufficient) {
-        res.status(400).json({
-          success: false,
-          message: balanceCheck.error || 'Insufficient balance'
-        });
-        return;
+      const balance = await WalletService.getBalance(user.inAppWallet.address, tokenAddress);
+
+      if (isBuy && balance.eth < amount || !isBuy && (balance.token ?? 0n) < amount) {
+        throw new Error('Insufficient balance');
       }
 
-      // Execute the trade
-      const result = await this.executeSwapTransaction(
-        client,
-        tokenAddress,
-        amount,
-        isBuy,
-        user.inAppWallet,
-        slippageTolerance,
-        deadline
-      );
+      let txHash: string | null = null;
+      if (isBuy) {
+        txHash = await TradingService.swapTokenInUniswapV3(
+          WalletService.decryptPrivateKey(user.inAppWallet.encryptedPrivateKey),
+          {
+            tokenIn: WETH_ADDRESS,
+            tokenOut: tokenAddress,
+            amountIn: amount,
+            fee: 500,
+            slippageBps: slippageTolerance
+          }
+        );
+      } else {
+        txHash = await TradingService.swapTokenInUniswapV3(
+          WalletService.decryptPrivateKey(user.inAppWallet.encryptedPrivateKey),
+          {
+            tokenIn: tokenAddress,
+            tokenOut: WETH_ADDRESS,
+            amountIn: amount,
+            fee: 500,
+            slippageBps: slippageTolerance
+          }
+        );
+      }
 
-      if (result.success) {
+      // if (txHash) {
+      // const txHash = await TradingService.swapTokenInUniswapV3(
+      //   WalletService.decryptPrivateKey(user.inAppWallet.encryptedPrivateKey),
+      //   {
+      //     tokenIn: tokenAddress,
+      //     tokenOut: WETH_ADDRESS,
+      //     amountIn: amount,
+      //     fee: 500,
+      //     slippageBps: slippageTolerance
+      //   }
+      // );
+      
+      if (txHash) {
         res.json({
           success: true,
           message: 'Trade executed successfully',
-          txHash: result.txHash,
-          amountIn: result.amountIn,
-          amountOut: result.amountOut
+          txHash: txHash,
         });
       } else {
-        res.status(400).json({
-          success: false,
-          message: result.error || 'Trade execution failed'
-        });
+        throw new Error('Failed to execute trade');
       }
-
     } catch (error) {
       logger.error('Error executing trade:', error);
+      let errorMessage = 'Failed to execute trade';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       res.status(500).json({
         success: false,
-        message: 'Failed to execute trade'
+        message: errorMessage
       });
-    }
-  }
-
-  /**
-   * Check if wallet has sufficient balance for the trade
-   */
-  private static async checkBalance(
-    client: any,
-    tokenAddress: string,
-    walletAddress: string,
-    amount: string,
-    isBuy: boolean
-  ): Promise<{ sufficient: boolean; error?: string }> {
-    try {
-      if (isBuy) {
-        // Check ETH balance for buying
-        const ethBalance = await client.getBalance({
-          address: getAddress(walletAddress)
-        });
-        const requiredAmount = parseEther(amount);
-        const availableBalance = ethBalance;
-        
-        if (requiredAmount > availableBalance) {
-          return {
-            sufficient: false,
-            error: `Insufficient ETH balance. You have ${formatEther(availableBalance)} ETH, but need ${amount} ETH`
-          };
-        }
-      } else {
-        // Check token balance for selling
-        const tokenBalance = await client.readContract({
-          address: getAddress(tokenAddress),
-          abi: [
-            {
-              name: 'balanceOf',
-              type: 'function',
-              inputs: [{ name: 'account', type: 'address' }],
-              outputs: [{ name: '', type: 'uint256' }],
-              stateMutability: 'view'
-            }
-          ],
-          functionName: 'balanceOf',
-          args: [getAddress(walletAddress)]
-        });
-        
-        const requiredAmount = parseEther(amount);
-        const availableBalance = tokenBalance as bigint;
-        
-        if (requiredAmount > availableBalance) {
-          return {
-            sufficient: false,
-            error: `Insufficient token balance. You have ${formatEther(availableBalance)} tokens, but want to sell ${amount} tokens`
-          };
-        }
-      }
-      
-      return { sufficient: true };
-    } catch (error) {
-      logger.error('Balance check error:', error);
-      return {
-        sufficient: false,
-        error: 'Failed to check balance'
-      };
-    }
-  }
-
-  /**
-   * Execute the actual swap transaction
-   */
-  private static async executeSwapTransaction(
-    client: any,
-    tokenAddress: string,
-    amount: string,
-    isBuy: boolean,
-    walletAddress: string,
-    slippageTolerance: number,
-    deadline: number
-  ): Promise<{ success: boolean; txHash?: string; amountIn?: string; amountOut?: string; error?: string }> {
-    try {
-      // This is a simplified implementation
-      // In a real implementation, you would:
-      // 1. Use the private key from the database to sign the transaction
-      // 2. Execute the Uniswap V3 swap
-      // 3. Wait for transaction confirmation
-      // 4. Return the transaction hash
-
-      // For now, we'll simulate a successful transaction
-      const mockTxHash = `0x${Math.random().toString(16).slice(2, 66)}`;
-      
-      // Simulate transaction delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      return {
-        success: true,
-        txHash: mockTxHash,
-        amountIn: amount,
-        amountOut: '0' // Would be calculated from actual swap
-      };
-
-    } catch (error) {
-      logger.error('Swap transaction error:', error);
-      return {
-        success: false,
-        error: 'Transaction execution failed'
-      };
     }
   }
 }

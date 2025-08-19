@@ -1,5 +1,6 @@
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import { PanelManager } from "@/components/panels"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -16,6 +17,9 @@ const Layout = ({ children }: LayoutProps) => {
       </main>
 
       <Footer />
+      
+      {/* Panel Manager - renders all active panels */}
+      <PanelManager />
     </div>
   )
 }

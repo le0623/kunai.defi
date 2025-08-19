@@ -2,13 +2,15 @@ import Presets from "@/components/common/presets"
 import Input from "@/components/common/input"
 import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { useAuth, usePrice } from '@/store/hooks'
+import { useAuth } from '@/hooks/useAuth'
+import { usePrice } from '@/hooks/usePrice'
 import { useAccount, useBalance } from 'wagmi'
 import { tradingService } from '@/services/tradingService'
 import { toast } from 'sonner'
 import { formatNumber } from '@/lib/utils'
 import ButtonGroup from "@/components/common/button-group"
 import { type KunaiTokenInfo } from "@kunai/shared"
+import { tradingAPI } from "@/services/api"
 
 interface TradeProps {
   token: KunaiTokenInfo
@@ -80,32 +82,42 @@ export const Trade = ({ token, onBalanceUpdate }: TradeProps) => {
 
     setLoading(true)
     try {
-      const result = await tradingService.executeTrade(
-        {
-          tokenAddress,
-          amount,
-          isBuy,
-          slippageTolerance: 50, // 0.5%
-          deadline: 300 // 5 minutes
-        },
-        walletType,
-        walletAddress,
-        (balances) => {
-          // Update balances in UI
-          setEthBalance(balances.ethBalance)
-          setTokenBalance(balances.tokenBalance)
-          // Notify parent component
-          onBalanceUpdate?.(balances)
-        }
-      )
+      let result: {
+        success: boolean
+        message: string
+        txHash?: string
+      } | null = null;
+      // if (isConnected) {
+      //   result = await tradingService.executeTrade(
+      //     {
+      //       tokenAddress,
+      //       amount,
+      //       isBuy,
+      //       slippageTolerance: 50, // 0.5%
+      //       deadline: 300 // 5 minutes
+      //     },
+      //     walletType,
+      //     walletAddress,
+      //     (balances) => {
+      //       // Update balances in UI
+      //       setEthBalance(balances.ethBalance)
+      //       setTokenBalance(balances.tokenBalance)
+      //       // Notify parent component
+      //       onBalanceUpdate?.(balances)
+      //     }
+      //   )
+      // }
+      if (isAuthenticated) {
+        result = await tradingAPI.tradeToken(tokenAddress, amount, isBuy)
+      }
 
-      if (result.success) {
+      if (result?.success) {
         const action = isBuy ? 'bought' : 'sold'
         const amountText = isBuy ? `${amount} ETH worth of ${tokenSymbol}` : `${amount} ${tokenSymbol}`
         toast.success(`Successfully ${action} ${amountText}`)
       } else {
         const action = isBuy ? 'Buy' : 'Sell'
-        toast.error(result.error || `${action} transaction failed`)
+        toast.error(result?.message || `${action} transaction failed`)
       }
     } catch (error) {
       console.error(`${isBuy ? 'Buy' : 'Sell'} error:`, error)

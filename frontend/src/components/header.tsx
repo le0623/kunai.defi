@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils'
 import logo from '@/assets/logo.svg'
 import { SearchBox } from './common/search-box'
 import { Button } from '@/components/ui/button'
-import { useAuth, useAppDispatch } from '@/store/hooks'
+import { useAuth } from '@/hooks'
+import { useAppDispatch } from '@/store/hooks'
 import AccountMenu from './account-menu'
 import { ChainSelector } from './chain-selector'
 import { setIsDepositSheetOpen } from '@/store/slices/uiSlice'
@@ -13,7 +14,7 @@ const navItems = [
   // { path: '/', label: 'Dashboard' },
   { path: '/new-pair', label: 'New Pair' },
   { path: '/', label: 'Trending' },
-  { path: '/wallet-monitor', label: 'Wallet Monitor' },
+  // { path: '/wallet-monitor', label: 'Wallet Monitor' },
   // { path: '/trading-bot', label: 'Trading Bot' },
   { path: '/copy-trade', label: 'Copy Trade' },
 ]

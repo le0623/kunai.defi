@@ -1,4 +1,4 @@
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeft,
@@ -13,8 +13,6 @@ import TokenBar from '@/components/pages/TokenDetail/token-bar'
 
 const TokenDetail = () => {
   const { chain, tokenAddress } = useParams<{ chain: string; tokenAddress: string }>()
-  const location = useLocation();
-  const { pool } = location.state || {};
   const { data: tokenInfo, isLoading, isError } = useQuery({
     queryKey: ['tokenInfo', chain, tokenAddress],
     queryFn: () => tokenAPI.getTokenInfo(chain || '', tokenAddress || ''),
@@ -55,7 +53,7 @@ const TokenDetail = () => {
         <ResizablePanelGroup direction="vertical" className="flex-1">
           {/* Chart Section */}
           <ResizablePanel defaultSize={60} minSize={30}>
-            <TradingViewChart pool={pool} />
+            <TradingViewChart pool={tokenInfo?.tokenInfo.relationships.top_pools.data[0].id.split("_")[1]} />
           </ResizablePanel>
 
           <ResizableHandle withHandle />

@@ -1,13 +1,10 @@
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react"
+
 import type { KunaiTokenInfo } from "@kunai/shared"
 import { Trade } from "./trade"
-import { useAuth } from '@/store/hooks'
+import { useAuth } from '@/hooks'
 import { useAccount } from 'wagmi'
 import { tradingService } from '@/services/tradingService'
 import { TokenSecurity } from "./token-security"
@@ -16,8 +13,6 @@ import TokenAnalytics from "./token-analytics"
 
 export const TradingZone = ({ token }: { token: KunaiTokenInfo }) => {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
-  const [tokenBalance, setTokenBalance] = useState('0')
-  const [ethBalance, setEthBalance] = useState('0')
 
   const { isAuthenticated } = useAuth()
   const { address: externalWalletAddress, isConnected } = useAccount()
@@ -30,17 +25,13 @@ export const TradingZone = ({ token }: { token: KunaiTokenInfo }) => {
       try {
         if (isConnected && externalWalletAddress) {
           // External wallet balances
-          const ethBal = await tradingService.getEthBalance(externalWalletAddress)
-          const tokenBal = await tradingService.getTokenBalance(token.moralisToken.address, externalWalletAddress)
-          setEthBalance(ethBal)
-          setTokenBalance(tokenBal)
+          // const ethBal = await tradingService.getEthBalance(externalWalletAddress)
+          // const tokenBal = await tradingService.getTokenBalance(token.moralisToken.address, externalWalletAddress)
         } else {
           // In-app wallet balances
           const user = await import('@/services/api').then(m => m.authAPI.getCurrentUser())
-          const ethBal = await tradingService.getEthBalance(user.inAppWallet)
-          const tokenBal = await tradingService.getTokenBalance(token.moralisToken.address, user.inAppWallet)
-          setEthBalance(ethBal)
-          setTokenBalance(tokenBal)
+          // const ethBal = await tradingService.getEthBalance(user.inAppWallet)
+          // const tokenBal = await tradingService.getTokenBalance(token.moralisToken.address, user.inAppWallet)
         }
       } catch (error) {
         console.error('Error loading balances:', error)
@@ -52,8 +43,8 @@ export const TradingZone = ({ token }: { token: KunaiTokenInfo }) => {
 
   // Handle balance updates from trading
   const handleBalanceUpdate = (balances: { ethBalance: string; tokenBalance: string }) => {
-    setEthBalance(balances.ethBalance)
-    setTokenBalance(balances.tokenBalance)
+    // setEthBalance(balances.ethBalance)
+    // setTokenBalance(balances.tokenBalance)
   }
 
   return (

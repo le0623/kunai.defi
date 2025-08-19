@@ -23,12 +23,19 @@ const authPersistConfig = {
   whitelist: ['token', 'isAuthenticated'] // Only persist these fields
 }
 
+// Configure persistence for the 'ui' slice
+const uiPersistConfig = {
+  key: 'ui',
+  storage,
+  whitelist: ['theme', 'panels'] // Only persist theme and panel states
+}
+
 // Combine reducers with persistence
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
     wallet: walletReducer,
     pools: poolsReducer,
-    ui: uiReducer,
+    ui: persistReducer(uiPersistConfig, uiReducer),
     presets: presetsReducer,
   other: persistReducer(otherPersistConfig, otherReducer),
   price: priceReducer,

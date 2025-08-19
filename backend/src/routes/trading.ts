@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { TradingController } from '@/controllers/tradingController';
@@ -140,16 +140,17 @@ router.post(
       .isInt({ min: 60, max: 3600 })
       .withMessage('Deadline must be between 60 and 3600 seconds'),
   ],
-  (req, res, next) => {
+  (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid request data',
         errors: errors.array(),
       });
+    } else {
+      next();
     }
-    next();
   },
   TradingController.executeTrade
 );

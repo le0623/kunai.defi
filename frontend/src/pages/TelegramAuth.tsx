@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { authAPI } from '@/services/api'
-import { useAuth } from '@/store/hooks'
+import { useAuth } from '@/hooks'
 import { toast } from 'sonner'
 
 const TelegramAuth = () => {

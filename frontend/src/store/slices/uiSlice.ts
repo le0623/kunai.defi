@@ -1,5 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
+export interface PanelState {
+  isOpen: boolean
+  position: { x: number; y: number }
+}
+
 export interface UIState {
   theme: 'light' | 'dark' | 'system'
   sidebarOpen: boolean
@@ -18,6 +23,9 @@ export interface UIState {
   selectedChain: string
   isWindowFocused: boolean
   isDepositSheetOpen: boolean
+  panels: {
+    [panelId: string]: PanelState
+  }
 }
 
 const initialState: UIState = {
@@ -30,6 +38,7 @@ const initialState: UIState = {
   selectedChain: 'ethereum',
   isWindowFocused: true,
   isDepositSheetOpen: false,
+  panels: {},
 }
 
 const uiSlice = createSlice({
@@ -88,6 +97,37 @@ const uiSlice = createSlice({
     setIsDepositSheetOpen: (state, action: PayloadAction<boolean>) => {
       state.isDepositSheetOpen = action.payload
     },
+    // Panel management
+    openPanel: (state, action: PayloadAction<{ panelId: string; position?: { x: number; y: number } }>) => {
+      const { panelId, position } = action.payload
+      state.panels[panelId] = {
+        isOpen: true,
+        position: position || { x: 0, y: 0 }
+      }
+    },
+    closePanel: (state, action: PayloadAction<string>) => {
+      const panelId = action.payload
+      if (state.panels[panelId]) {
+        state.panels[panelId].isOpen = false
+      }
+    },
+    togglePanel: (state, action: PayloadAction<{ panelId: string; position?: { x: number; y: number } }>) => {
+      const { panelId, position } = action.payload
+      if (state.panels[panelId]?.isOpen) {
+        state.panels[panelId].isOpen = false
+      } else {
+        state.panels[panelId] = {
+          isOpen: true,
+          position: position || { x: 0, y: 0 }
+        }
+      }
+    },
+    updatePanelPosition: (state, action: PayloadAction<{ panelId: string; position: { x: number; y: number } }>) => {
+      const { panelId, position } = action.payload
+      if (state.panels[panelId]) {
+        state.panels[panelId].position = position
+      }
+    },
   },
 })
 
@@ -107,6 +147,10 @@ export const {
   setSelectedChain,
   setWindowFocus,
   setIsDepositSheetOpen,
+  openPanel,
+  closePanel,
+  togglePanel,
+  updatePanelPosition,
 } = uiSlice.actions
 
 export default uiSlice.reducer 

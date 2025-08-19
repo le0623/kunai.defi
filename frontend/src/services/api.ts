@@ -1,6 +1,6 @@
 import api from '@/lib/axios'
 import { storageService } from '@/services/localstorage'
-import type { GeckoTerminalPool, GeckoTerminalToken, KunaiPool, KunaiTokenInfo, MoralisTokenSwap, TokenSecurityInfo } from '@kunai/shared'
+import type { KunaiPool, KunaiTokenInfo, MoralisTokenSwap, TokenSecurityInfo } from '@kunai/shared'
 import { AxiosError } from 'axios'
 
 // Authentication API calls
@@ -128,6 +128,12 @@ export const walletAPI = {
 
 // Trading bot API calls
 export const tradingAPI = {
+  // Trade token
+  tradeToken: async (tokenAddress: string, amount: string, isBuy: boolean) => {
+    const response = await api.post('/api/trading/execute', { tokenAddress, amount, isBuy })
+    return response.data
+  },
+
   // Get bot status
   getBotStatus: async () => {
     const response = await api.get('/api/trading/bot/status')

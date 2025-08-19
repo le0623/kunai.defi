@@ -1,6 +1,9 @@
 import { ethers } from 'ethers';
 import { prisma } from '@/config/database';
 import { logger } from '@/utils/logger';
+import { createPublicClient, http, getAddress, parseEther } from 'viem';
+import { mainnet } from 'viem/chains';
+
 
 export interface WalletConfig {
   maxTradeAmount: string; // in ETH
@@ -141,6 +144,53 @@ export class WalletService {
   }
 
   /**
+   * Get balance for a specific token or ETH
+   */
+  static async getBalance(
+    walletAddress: string,
+    tokenAddress?: string
+  ): Promise<{ eth: bigint; token: bigint | null }> {
+    try {
+      const client = createPublicClient({
+        chain: mainnet,
+        transport: http(process.env.ETHEREUM_RPC_URL || 'https://1rpc.io/eth')
+      });
+
+      // Get ETH balance
+      const ethBalance = await client.getBalance({
+        address: getAddress(walletAddress)
+      });
+
+      // Get token balance only if tokenAddress is provided
+      let tokenBalance: bigint | null = null;
+      if (tokenAddress) {
+        tokenBalance = await client.readContract({
+          address: getAddress(tokenAddress),
+          abi: [
+            {
+              name: 'balanceOf',
+              type: 'function',
+              inputs: [{ name: 'account', type: 'address' }],
+              outputs: [{ name: '', type: 'uint256' }],
+              stateMutability: 'view'
+            }
+          ],
+          functionName: 'balanceOf',
+          args: [getAddress(walletAddress)]
+        }) as bigint;
+      }
+
+      return {
+        eth: ethBalance,
+        token: tokenBalance
+      };
+    } catch (error) {
+      logger.error('Balance check error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get current user's in-app wallet balance
    */
   static async getCurrentUserWalletBalance(userId: string): Promise<{
@@ -228,15 +278,15 @@ export class WalletService {
   /**
    * Simple encryption for private key (NOT for production use)
    */
-  private static encryptPrivateKey(privateKey: string): string {
-    // In production, use proper encryption with environment variables
+  public static encryptPrivateKey(privateKey: string): string {
+    // Inc production, use proper encryption with environment variables
     return Buffer.from(privateKey).toString('base64');
   }
 
   /**
    * Simple decryption for private key (NOT for production use)
    */
-  private static decryptPrivateKey(encryptedKey: string): string {
+  public static decryptPrivateKey(encryptedKey: string): string {
     // In production, use proper decryption
     return Buffer.from(encryptedKey, 'base64').toString();
   }

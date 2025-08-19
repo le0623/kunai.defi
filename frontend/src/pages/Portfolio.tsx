@@ -17,7 +17,7 @@ import {
   Settings,
   Lock
 } from 'lucide-react'
-import { useAuth } from '@/store/hooks'
+import { useAuth } from '@/hooks'
 import { useAccount, useBalance } from 'wagmi'
 import { shortenAddress, formatNumber } from '@/lib/utils'
 import CopyIcon from '@/components/common/copy'

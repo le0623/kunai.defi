@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useAuth } from "@/store/hooks"
+import { useAuth } from "@/hooks"
 import {
   useConnectModal,
 } from '@rainbow-me/rainbowkit';

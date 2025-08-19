@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/store/hooks'
+import { useAuth } from '@/hooks'
 import {
   DropdownMenu,
   DropdownMenuContent,
