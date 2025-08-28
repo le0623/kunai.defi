@@ -24,6 +24,7 @@ import tradingRoutes from '@/routes/trading';
 import poolRoutes from '@/routes/pool';
 import telegramWebAppRoutes from '@/routes/tgWebApp';
 import tokenRoutes from '@/routes/token';
+import traderRoutes from '@/routes/trader';
 
 // Load environment variables
 dotenv.config();
@@ -131,6 +132,7 @@ app.use('/api/trading', tradingRoutes);
 app.use('/api/pools', poolRoutes);
 app.use('/api/telegram-webapp', telegramWebAppRoutes);
 app.use('/api/token', tokenRoutes);
+app.use('/api/traders', traderRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

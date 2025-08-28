@@ -23,6 +23,7 @@ export interface UIState {
   selectedChain: string
   isWindowFocused: boolean
   isDepositSheetOpen: boolean
+  isCopyTradeSheetOpen: boolean
   panels: {
     [panelId: string]: PanelState
   }
@@ -38,6 +39,7 @@ const initialState: UIState = {
   selectedChain: 'ethereum',
   isWindowFocused: true,
   isDepositSheetOpen: false,
+  isCopyTradeSheetOpen: false,
   panels: {},
 }
 
@@ -97,6 +99,9 @@ const uiSlice = createSlice({
     setIsDepositSheetOpen: (state, action: PayloadAction<boolean>) => {
       state.isDepositSheetOpen = action.payload
     },
+    setIsCopyTradeSheetOpen: (state, action: PayloadAction<boolean>) => {
+      state.isCopyTradeSheetOpen = action.payload
+    },
     // Panel management
     openPanel: (state, action: PayloadAction<{ panelId: string; position?: { x: number; y: number } }>) => {
       const { panelId, position } = action.payload
@@ -147,6 +152,7 @@ export const {
   setSelectedChain,
   setWindowFocus,
   setIsDepositSheetOpen,
+  setIsCopyTradeSheetOpen,
   openPanel,
   closePanel,
   togglePanel,

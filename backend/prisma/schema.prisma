@@ -24,6 +24,7 @@ model User {
   monitoredWallets MonitoredWallet[]
   tradingBots      TradingBot[]
   copyTrades       CopyTrade[]
+  trades           Trade[]
   alerts           Alert[]
   inAppWallet      InAppWallet?
 
@@ -186,22 +187,6 @@ model TradingBot {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("trading_bots")
-}
-
-model CopyTrade {
-  id            String   @id @default(cuid())
-  targetAddress String
-  allocation    Float // Percentage to copy (0-100)
-  maxSlippage   Float    @default(2.0) // Maximum slippage percentage
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("copy_trades")
 }
 
 model SmartWalletLabel {
@@ -448,4 +433,103 @@ model Pool {
   dex     Dex   @relation(fields: [dexId], references: [id])
 
   @@map("pools")
+}
+
+model Trade {
+  id          String   @id @default(cuid())
+  hash        String   @unique // Transaction hash
+  userAddress String   // User's wallet address (from InAppWallet)
+  
+  // Trade details
+  tokenAddress String  // Token being traded
+  tokenSymbol  String? // Token symbol
+  tokenName    String? // Token name
+  type         String  // buy, sell
+  amount       String  // Trade amount in wei
+  tokenAmount  String  // Token amount received/sold
+  priceUSD     Float?  // Price at time of trade in USD
+  priceETH     String  // Price at time of trade in ETH
+  
+  // Gas and fees
+  gasUsed      String  // Gas used in wei
+  gasPrice     String  // Gas price in wei
+  gasCost      String  // Total gas cost in wei
+  
+  // Trade metadata
+  timestamp    DateTime
+  blockNumber  BigInt
+  status       String  @default("pending") // pending, confirmed, failed
+  
+  // Performance tracking
+  profit       String? // Profit/loss in wei (calculated after trade)
+  duration     Int?    // Trade duration in minutes (for copy trades)
+  entryPrice   String? // Entry price in wei
+  exitPrice    String? // Exit price in wei
+  
+  // Copy trade information
+  isCopyTrade  Boolean @default(false)
+  copiedFrom   String? // Address of the trader being copied
+  copyTradeId  String? // Reference to CopyTrade setting
+  
+  // DEX information
+  dexName      String? // DEX name (Uniswap, PancakeSwap, etc.)
+  dexVersion   String? // DEX version (V2, V3, etc.)
+  slippage     Float?  // Actual slippage percentage
+  
+  // Risk metrics
+  riskScore    Int     @default(0) // Risk score (0-100)
+  isHoneypot   Boolean @default(false)
+  isRugPull    Boolean @default(false)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  copyTrade    CopyTrade? @relation(fields: [copyTradeId], references: [id])
+
+  @@map("trades")
+}
+
+model CopyTrade {
+  id            String   @id @default(cuid())
+  name          String   // Copy trade setting name
+  isActive      Boolean  @default(true)
+  
+  // Target trader
+  targetAddress String   // Address of the trader to copy
+  targetLabel   String?  // Custom label for the trader
+  
+  // Copy settings
+  allocation    Float    // Percentage of wallet to use (0-100)
+  maxSlippage   Float    @default(2.0) // Maximum slippage percentage
+  gasLimit      Int      @default(500000) // Gas limit for trades
+  gasPrice      Int      @default(20) // Gas price in Gwei
+  
+  // Trade filters
+  minTradeAmount String  @default("0.01") // Minimum trade amount in ETH
+  maxTradeAmount String  @default("1.0")  // Maximum trade amount in ETH
+  tokenWhitelist String[] // Whitelist of tokens to trade
+  tokenBlacklist String[] // Blacklist of tokens to avoid
+  
+  // Risk management
+  maxDailyLoss  String  @default("0.1") // Maximum daily loss in ETH
+  stopLoss      Float   @default(10.0) // Stop loss percentage
+  takeProfit    Float   @default(20.0) // Take profit percentage
+  
+  // Performance tracking
+  totalTrades   Int     @default(0) // Total number of copied trades
+  totalProfit   String  @default("0") // Total profit/loss in wei
+  winRate       Float   @default(0) // Win rate percentage
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userId        String
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades        Trade[]
+
+  @@map("copy_trades")
 }

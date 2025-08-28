@@ -7,6 +7,7 @@ import { mainnet } from 'viem/chains';
 import { TradingService } from '@/services/tradingService';
 import { WalletService } from '@/services/walletService';
 import { WETH_ADDRESS } from '@/config/abi';
+import { CopyTradeService } from '@/services/copyTradeService';
 
 export class TradingController {
   /**
@@ -432,24 +433,37 @@ export class TradingController {
           }
         );
       }
-
-      // if (txHash) {
-      // const txHash = await TradingService.swapTokenInUniswapV3(
-      //   WalletService.decryptPrivateKey(user.inAppWallet.encryptedPrivateKey),
-      //   {
-      //     tokenIn: tokenAddress,
-      //     tokenOut: WETH_ADDRESS,
-      //     amountIn: amount,
-      //     fee: 500,
-      //     slippageBps: slippageTolerance
-      //   }
-      // );
       
       if (txHash) {
+        // Store the original trade
+        const trade = await (prisma as any).trade.create({
+          data: {
+            hash: txHash,
+            userAddress: user.inAppWallet.address,
+            tokenAddress,
+            type: isBuy ? 'buy' : 'sell',
+            amount: amount.toString(),
+            tokenAmount: '0', // Will be updated after transaction confirmation
+            priceETH: '0', // Will be updated after transaction confirmation
+            gasUsed: '0', // Will be updated after transaction confirmation
+            gasPrice: '0', // Will be updated after transaction confirmation
+            gasCost: '0', // Will be updated after transaction confirmation
+            timestamp: new Date(),
+            blockNumber: BigInt(0), // Will be updated after transaction confirmation
+            status: 'pending',
+            isCopyTrade: false,
+            userId: user.id
+          }
+        });
+
+        // Check for copy trade settings that match this trade
+        CopyTradeService.executeCopyTrades(user.inAppWallet.address, tokenAddress, amount, isBuy, slippageTolerance);
+
         res.json({
           success: true,
           message: 'Trade executed successfully',
           txHash: txHash,
+          tradeId: trade.id
         });
       } else {
         throw new Error('Failed to execute trade');
